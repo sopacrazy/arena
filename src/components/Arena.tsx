@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Shield, Sword, Zap, Heart, Trophy, X } from 'lucide-react';
 
@@ -17,39 +17,110 @@ interface Card {
   hasTaunt?: boolean;
 }
 
-const INITIAL_HAND: Card[] = [
-  { id: 'h1', name: 'Warlord', type: 'Guerreiro', cost: 4, atk: 28, hp: 20, maxHp: 20, desc: '', color: 'orange', image: '/Warlord.png', canAttack: false },
-  { id: 'h2', name: 'Witch', type: 'Mago', cost: 3, atk: 15, hp: 10, maxHp: 10, desc: '', color: 'purple', image: '/witch.png', canAttack: false },
-  { id: 'h3', name: 'Guerreiro Orc', type: 'Guerreiro', cost: 2, atk: 18, hp: 12, maxHp: 12, desc: '', color: 'green', image: '/Guerreiro_Orc.png', canAttack: false },
-  { id: 'h4', name: 'Rato Esquelético', type: 'Morto-Vivo', cost: 1, atk: 8, hp: 4, maxHp: 4, desc: '', color: 'gray', image: '/Rato_Esquelético.png', canAttack: false },
+// Catalog base for game cards from 'RECK 1'
+const CARD_CATALOG = {
+  neutro: [
+    { name: "Recruta 06", img: "/RECK 1/NIVEL NEUTRO/06 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Patrulheiro 11", img: "/RECK 1/NIVEL NEUTRO/11 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Sentinela 43", img: "/RECK 1/NIVEL NEUTRO/43 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Aldeão 49", img: "/RECK 1/NIVEL NEUTRO/49 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Militante 50", img: "/RECK 1/NIVEL NEUTRO/50 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Guarda 51", img: "/RECK 1/NIVEL NEUTRO/51 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
+    { name: "Vigilante 53", img: "/RECK 1/NIVEL NEUTRO/53 - Copia - Copia - Copia.png" },
+    { name: "Soldado 60", img: "/RECK 1/NIVEL NEUTRO/60.png" },
+    { name: "Mercenário 67", img: "/RECK 1/NIVEL NEUTRO/67 - Copia - Copia.png" },
+    { name: "Andarilho", img: "/RECK 1/NIVEL NEUTRO/Design sem nome (10).png" },
+  ],
+  prata: [
+    { name: "Caelan", img: "/RECK 1/PRATA/Caelan, Lâmina do Juramento.png" },
+    { name: "Fargan", img: "/RECK 1/PRATA/Fargan, Lâmina do Caminho Estreito (1).png" },
+    { name: "Raskel", img: "/RECK 1/PRATA/_Raskel, Sangue da Campanha.png" },
+  ],
+  ouro: [
+    { name: "Aldren Veterano", img: "/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).png" },
+    { name: "Iskand Sobrevivente", img: "/RECK 1/OURO/Iskand, Sobrevivente do Campo Vermelho.png" },
+  ]
+};
+
+// Map catalog to full Card objects
+const DECK_POOL: Card[] = [
+  ...CARD_CATALOG.neutro.map((c, i) => ({
+    id: `n-${i}`,
+    name: c.name,
+    type: 'Neutro',
+    atk: 1 + Math.floor(Math.random() * 3),
+    hp: 2 + Math.floor(Math.random() * 3),
+    maxHp: 5,
+    cost: 1 + Math.floor(i/3),
+    desc: 'Unidade básica',
+    color: 'gray',
+    image: c.img,
+    canAttack: false
+  })),
+  ...CARD_CATALOG.prata.map((c, i) => ({
+    id: `p-${i}`,
+    name: c.name,
+    type: 'Prata',
+    atk: 4 + Math.floor(Math.random() * 3),
+    hp: 4 + Math.floor(Math.random() * 3),
+    maxHp: 8,
+    cost: 4 + i,
+    desc: 'Unidade de elite',
+    color: 'silver',
+    image: c.img,
+    canAttack: false
+  })),
+  ...CARD_CATALOG.ouro.map((c, i) => ({
+    id: `o-${i}`,
+    name: c.name,
+    type: 'Ouro',
+    atk: 7 + Math.floor(Math.random() * 4),
+    hp: 8 + Math.floor(Math.random() * 4),
+    maxHp: 12,
+    cost: 7 + i,
+    desc: 'Lenda do campo',
+    color: 'yellow',
+    image: c.img,
+    canAttack: false
+  }))
 ];
 
-const INITIAL_FIELD: Card[] = [
-  { id: 'f1', name: 'Warlord', type: 'Guerreiro', cost: 4, atk: 28, hp: 20, maxHp: 20, desc: '', color: 'orange', image: '/Warlord.png', canAttack: true },
-];
-
-const ENEMY_FIELD_DATA: Card[] = [
-  { id: 'e1', name: 'Orc Enfurecido', type: 'Inimigo', cost: 2, atk: 20, hp: 10, maxHp: 10, desc: '', color: 'red', image: '/Guerreiro_Orc.png', canAttack: true },
-  { id: 'e2', name: 'Rato de Esgoto', type: 'Inimigo', cost: 1, atk: 12, hp: 5, maxHp: 5, desc: '', color: 'red', image: '/Rato_Esquelético.png', canAttack: true },
-  { id: 'e3', name: 'General Orc', type: 'Inimigo', cost: 5, atk: 35, hp: 25, maxHp: 25, desc: '', color: 'red', image: '/Guerreiro_Orc.png', canAttack: true },
-];
 
 interface ArenaProps {
   onClose: () => void;
 }
 
 export default function Arena({ onClose }: ArenaProps) {
-  const [hand, setHand] = useState<Card[]>(INITIAL_HAND);
-  const [field, setField] = useState<Card[]>(INITIAL_FIELD);
-  const [enemyField, setEnemyField] = useState<Card[]>(ENEMY_FIELD_DATA);
-  const [enemyHandCount, setEnemyHandCount] = useState(5);
-  const [playerHp, setPlayerHp] = useState(280);
-  const [enemyHp, setEnemyHp] = useState(230);
+  // Helper to shuffle any array
+  const shuffle = <T,>(array: T[]): T[] => {
+    const newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+  };
+
+  // Initial Logic: Prepare Deck and Hand
+  const preparedDeck = useMemo(() => shuffle(DECK_POOL), []);
+  const initialHand = preparedDeck.slice(0, 4);
+  const remainingDeck = preparedDeck.slice(4);
+
+  const [deck, setDeck] = useState<Card[]>(remainingDeck);
+  const [hand, setHand] = useState<Card[]>(initialHand);
+  const [field, setField] = useState<(Card | null)[]>(Array(9).fill(null));
+  const [enemyField, setEnemyField] = useState<(Card | null)[]>(Array(9).fill(null));
+  const [enemyHandCount, setEnemyHandCount] = useState(4);
+  const [playerHp, setPlayerHp] = useState(30);
+  const [enemyHp, setEnemyHp] = useState(30);
   const [turn, setTurn] = useState<'player' | 'opponent'>('player');
+  const [turnCount, setTurnCount] = useState(1);
+  const [playedCardThisTurn, setPlayedCardThisTurn] = useState(false);
   const [gameStatus, setGameStatus] = useState<'playing' | 'victory' | 'defeat'>('playing');
   const [isTransitioning, setIsTransitioning] = useState<string | null>(null);
   
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [inspectedCard, setInspectedCard] = useState<Card | null>(null);
   const [attackingInfo, setAttackingInfo] = useState<{ id: string, targetType: 'card' | 'hero', isOpponent?: boolean } | null>(null);
   
   const [history, setHistory] = useState<string[]>([
@@ -58,21 +129,32 @@ export default function Arena({ onClose }: ArenaProps) {
   ]);
 
   const resetGame = () => {
-    setHand(INITIAL_HAND);
-    setField(INITIAL_FIELD);
-    setEnemyField(ENEMY_FIELD_DATA);
-    setEnemyHandCount(5);
-    setPlayerHp(280);
-    setEnemyHp(230);
+    const freshDeck = shuffle(DECK_POOL);
+    setDeck(freshDeck.slice(4));
+    setHand(freshDeck.slice(0, 4));
+    setField(Array(9).fill(null));
+    setEnemyField(Array(9).fill(null));
+    setEnemyHandCount(4);
+    setPlayerHp(30);
+    setEnemyHp(30);
     setTurn('player');
+    setTurnCount(1);
+    setPlayedCardThisTurn(false);
     setGameStatus('playing');
     setHistory(["● BLOCO DE NOTAS LIMPO", "● PARTIDA REINICIADA"]);
     setSelectedCardId(null);
+    setInspectedCard(null);
+  };
+
+  const handleInspect = (e: React.MouseEvent, card: Card) => {
+    e.preventDefault();
+    setInspectedCard(card);
   };
 
   const endTurn = async () => {
     if (turn !== 'player') return;
     setTurn('opponent');
+    setPlayedCardThisTurn(false);
     setSelectedCardId(null);
     setIsTransitioning("TURNO DO ADVERSÁRIO");
     setTimeout(() => setIsTransitioning(null), 1500);
@@ -83,16 +165,16 @@ export default function Arena({ onClose }: ArenaProps) {
   };
 
   const runOpponentAI = async () => {
-    // 1. Play a card if possible
+    // 1. Play a card if possible (Rule: 1 per turn)
     if (enemyField.length < 3 && enemyHandCount > 0) {
       const genericEnemy: Card = {
         id: `ebot-${Date.now()}`,
         name: 'Reforço Orc',
         type: 'Inimigo',
         cost: 3,
-        atk: 15 + Math.floor(Math.random() * 10),
-        hp: 15,
-        maxHp: 15,
+        atk: 5 + Math.floor(Math.random() * 5),
+        hp: 5,
+        maxHp: 5,
         desc: 'Convocado pelo bot',
         color: 'red',
         image: '/Guerreiro_Orc.png',
@@ -104,24 +186,40 @@ export default function Arena({ onClose }: ArenaProps) {
       await new Promise(r => setTimeout(r, 1000));
     }
 
-    // 2. Attack with existing cards
-    const capableAttackers = enemyField.filter(c => c.canAttack);
-    for (const attacker of capableAttackers) {
-      const target = field.length > 0 ? field[0].id : 'hero';
-      await handleOpponentAttack(attacker.id, target);
-      await new Promise(r => setTimeout(r, 800));
+    // 2. Attack with existing cards (Restriction: First turn no attacks)
+    if (turnCount > 1 || turn === 'opponent') { // Simple logic for AI, if it's AI turn it can attack unless it's the very first turn of game and it started.
+      const capableAttackers = enemyField.filter(c => c.canAttack);
+      for (const attacker of capableAttackers) {
+        const target = field.length > 0 ? field[0].id : 'hero';
+        await handleOpponentAttack(attacker.id, target);
+        await new Promise(r => setTimeout(r, 800));
+      }
     }
 
     // 3. End Turn
-    setEnemyField(prev => prev.map(c => ({ ...c, canAttack: true })));
+    setEnemyField(prev => prev.map(c => c ? { ...c, canAttack: true } : null));
     setTurn('player');
+    setTurnCount(prev => prev + 1);
+    setPlayedCardThisTurn(false);
+    
+    // Draw Phase (Self-Reflecting update)
+    if (deck.length > 0) {
+      const nextCard = deck[0];
+      setDeck(prev => prev.slice(1));
+      setHand(prev => [...prev, nextCard]);
+      setHistory(prev => [`● Fase de Compra: +1 carta`, ...prev]);
+    }
+
     setIsTransitioning("SEU TURNO");
-    setHistory(prev => ["● SEU TURNO: Compre uma carta!", ...prev]);
+    setHistory(prev => ["● SEU TURNO: Planeje sua estratégia!", ...prev]);
     setTimeout(() => setIsTransitioning(null), 1500);
+    
+    // Reset player field attack status
+    setField(prev => prev.map(c => c ? { ...c, canAttack: true } : null));
   };
 
   const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
-    const attacker = enemyField.find(c => c.id === attackerId);
+    const attacker = enemyField.find(c => c?.id === attackerId);
     if (!attacker) return;
 
     setAttackingInfo({ id: attackerId, targetType: targetId === 'hero' ? 'hero' : 'card', isOpponent: true });
@@ -132,10 +230,10 @@ export default function Arena({ onClose }: ArenaProps) {
       setHistory(prev => [`● PUNCH! ${attacker.name} causou ${attacker.atk} a você!`, ...prev]);
       if (playerHp - attacker.atk <= 0) setGameStatus('defeat');
     } else {
-      const target = field.find(c => c.id === targetId);
+      const target = field.find(c => c?.id === targetId);
       if (target) {
-        setField(prev => prev.map(c => c.id === targetId ? { ...c, hp: c.hp - attacker.atk } : c).filter(c => c.hp > 0));
-        setEnemyField(prev => prev.map(c => c.id === attackerId ? { ...c, hp: c.hp - target.atk, canAttack: false } : c).filter(c => c.hp > 0));
+        setField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
+        setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
         setHistory(prev => [`● Defesa! ${attacker.name} atacou sua unidade`, ...prev]);
       }
     }
@@ -143,33 +241,53 @@ export default function Arena({ onClose }: ArenaProps) {
   };
 
   const playCard = (card: Card) => {
-    if (field.length >= 3 || turn !== 'player') return;
+    if (turn !== 'player' || playedCardThisTurn) {
+      if (playedCardThisTurn) setHistory(prev => ["● Limite: 1 combatente por turno!", ...prev]);
+      return;
+    }
+    
+    // Find first empty Combatant slot (0-4)
+    const emptyIndex = field.findIndex((s, i) => s === null && i < 5);
+    if (emptyIndex === -1) {
+      setHistory(prev => ["● Campo de Combatentes cheio!", ...prev]);
+      return;
+    }
+
     setHand(prev => prev.filter(c => c.id !== card.id));
-    setField(prev => [...prev, { ...card, canAttack: false }]);
+    setField(prev => {
+      const next = [...prev];
+      next[emptyIndex] = { ...card, canAttack: false };
+      return next;
+    });
+    setPlayedCardThisTurn(true);
     setHistory(prev => [`● Jogou '${card.name}'`, ...prev]);
   };
 
   const handleCombat = async (attackerId: string, targetId: string | 'hero', isEnemyHero: boolean = false) => {
-    const attacker = field.find(c => c.id === attackerId);
+    const attacker = field.find(c => c?.id === attackerId);
     if (!attacker || !attacker.canAttack || turn !== 'player') return;
 
     setAttackingInfo({ id: attackerId, targetType: isEnemyHero ? 'hero' : 'card' });
     await new Promise(resolve => setTimeout(resolve, 350));
 
     if (isEnemyHero) {
+      if (turnCount === 1) {
+        setHistory(prev => ["● Regra: Sem ataques no primeiro turno!", ...prev]);
+        setSelectedCardId(null);
+        setAttackingInfo(null);
+        return;
+      }
       const newHp = enemyHp - attacker.atk;
       setEnemyHp(Math.max(0, newHp));
       if (newHp <= 0) setGameStatus('victory');
       setHistory(prev => [`● Direct Hit! ${attacker.name} causou ${attacker.atk} ao Herói`, ...prev]);
-      setField(prev => prev.map(c => c.id === attackerId ? { ...c, canAttack: false } : c));
+      setField(prev => prev.map(c => c?.id === attackerId ? { ...c, canAttack: false } : c));
     } else {
-      const target = enemyField.find(c => c.id === targetId);
+      const target = enemyField.find(c => c?.id === targetId);
       if (target) {
-        const newAttackerHp = attacker.hp - target.atk;
-        const newTargetHp = target.hp - attacker.atk;
-        setField(prev => prev.map(c => c.id === attackerId ? { ...c, hp: newAttackerHp, canAttack: false } : c).filter(c => c.hp > 0));
-        setEnemyField(prev => prev.map(c => c.id === targetId ? { ...c, hp: newTargetHp } : c).filter(c => c.hp > 0));
-        setHistory(prev => [`● Combate: ${attacker.name} causou dano`, ...prev]);
+        setField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
+        setEnemyField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
+        setHistory(prev => [`● Combate: ${attacker.name} vs ${target.name}`, ...prev]);
       }
     }
 
@@ -178,19 +296,19 @@ export default function Arena({ onClose }: ArenaProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black flex flex-col font-display text-white">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col font-display text-white">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center"
         style={{ backgroundImage: 'url("/arena.png")' }}
       >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
       </div>
 
       {/* Close Button */}
       <button 
         onClick={onClose}
-        className="absolute top-4 right-4 z-50 p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-full text-white backdrop-blur-md transition-all group pointer-events-auto"
+        className="absolute top-4 right-4 z-[60] p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-full text-white backdrop-blur-md transition-all group pointer-events-auto"
       >
         <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
       </button>
@@ -248,315 +366,365 @@ export default function Arena({ onClose }: ArenaProps) {
         )}
       </AnimatePresence>
 
-      {/* Main Game Interface */}
-      <div className={`relative z-10 w-full h-full flex flex-col justify-between p-4 overflow-hidden transition-opacity duration-1000 ${gameStatus !== 'playing' ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
+      <div className={`relative z-10 w-full h-full flex flex-col p-4 transition-opacity duration-1000 ${gameStatus !== 'playing' ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
         
-        {/* HUDs Section (Top) */}
-        <section className="w-full flex justify-between items-start">
-          {/* Opponent HUD */}
-          <div 
-            onClick={() => selectedCardId && handleCombat(selectedCardId, 'hero', true)}
-            className={`flex items-center gap-6 bg-black/60 backdrop-blur-xl px-5 py-3 rounded-2xl border transition-all cursor-pointer
-              ${selectedCardId ? 'border-red-500 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]'}
-              ${turn === 'opponent' ? 'opacity-50 grayscale' : ''}`}
-          >
-            <div className="flex items-center gap-4 border-r border-white/10 pr-6">
-               <div className="relative w-14 h-14 rounded-xl border border-red-500/40 overflow-hidden shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                  <img src="/enemy_avatar.png" alt="Malakor" className="w-full h-full object-cover" />
-               </div>
-               <div className="space-y-1">
-                  <div className="text-[10px] font-bold text-red-500/80 uppercase tracking-widest leading-none">Inimigo</div>
-                  <div className="text-sm font-black text-white uppercase tracking-wider">Malakor, o Sombrio</div>
-                  <div className="w-40 h-2.5 bg-black/60 rounded-full border border-white/5 overflow-hidden">
-                    <motion.div initial={{ width: '100%' }} animate={{ width: `${(enemyHp / 230) * 100}%` }} className="h-full bg-gradient-to-r from-red-600 to-red-400" />
-                  </div>
-                  <div className="flex gap-3 text-[9px] font-bold">
-                    <span className="text-red-400 flex items-center gap-1"><Heart className="w-2.5 h-2.5" /> {enemyHp}/230</span>
-                    <span className="text-blue-400 flex items-center gap-1"><Zap className="w-2.5 h-2.5" /> 5/5</span>
-                  </div>
-               </div>
-            </div>
-            <div className="flex flex-col items-center">
-               <span className="text-[9px] text-gray-500 uppercase font-black">Mão</span>
-               <div className="text-lg font-black text-white">{enemyHandCount}</div>
-            </div>
-          </div>
-
-          {/* Enemy Hand Visualization */}
-          <div className="flex -space-x-8 pr-12">
-            {Array.from({ length: enemyHandCount }).map((_, i) => (
-              <motion.div
-                key={`enemy-card-${i}`}
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: i * 0.1 }}
-                className="w-14 h-20 rounded-lg overflow-hidden border border-white/10 shadow-2xl relative bg-cover bg-center"
-                style={{ 
-                  backgroundImage: 'url("/fundo.png")',
-                  transform: `rotate(${(i - Math.floor(enemyHandCount / 2)) * 6}deg)`
-                }}
-              >
-                <div className="absolute inset-0 bg-black/20" />
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        <div className="flex flex-col items-center flex-1 justify-center">
-          <div className="flex justify-center gap-4 py-2">
-            {enemyField.map((card) => (
-              <motion.div
-                key={card.id}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: (attackingInfo?.id === card.id && attackingInfo.isOpponent) 
-                     ? (attackingInfo.targetType === 'hero' ? 250 : 100) 
-                     : 0,
-                  zIndex: (attackingInfo?.id === card.id && attackingInfo.isOpponent) ? 999 : 1
-                }}
-                transition={{
-                  y: { type: "spring", stiffness: 300, damping: 20 },
-                  default: { duration: 0.3 }
-                }}
-                whileHover={{ scale: 1.05 }}
-                onClick={() => selectedCardId && handleCombat(selectedCardId, card.id)}
-                className={`w-28 h-40 rounded-xl overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.3)] transition-all cursor-pointer
-                  ${selectedCardId ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-black animate-pulse' : ''}
-                  ${card.image ? 'border-transparent' : 'border-red-500/40 bg-gradient-to-br from-red-950/80 to-black backdrop-blur-md flex flex-col p-2.5'}`}
-              >
-                {card.image ? (
-                   <div className="relative w-full h-full">
-                     <img src={card.image} alt={card.name} className="w-full h-full object-contain pointer-events-none" />
-                     {/* Overlay HP bar for cards during combat */}
-                     <div className="absolute bottom-1 left-2 right-2 h-1 bg-black/50 rounded-full overflow-hidden">
-                        <div className="h-full bg-red-500" style={{ width: `${(card.hp / card.maxHp) * 100}%` }} />
-                     </div>
-                   </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[7px] font-bold text-red-400 uppercase tracking-tighter">{card.type}</span>
-                      <span className="w-4 h-4 rounded-full bg-red-600/50 border border-red-400 text-white flex items-center justify-center text-[8px] font-bold">{card.cost}</span>
-                    </div>
-                    <div className="w-full aspect-[4/3] rounded-lg bg-black/60 border border-red-500/20 mb-1.5 overflow-hidden">
-                       <div className="w-full h-full bg-gradient-to-tr from-red-500/10 animate-pulse" />
-                    </div>
-                    <h4 className="text-[9px] font-bold text-white mb-0.5 tracking-tight">{card.name}</h4>
-                    <p className="text-[7px] text-gray-500 leading-tight">{card.desc}</p>
-                    <div className="mt-auto flex justify-between border-t border-white/10 pt-1">
-                      <span className="flex items-center gap-1 text-[8px] text-red-500 font-bold"><Sword className="w-2 h-2" /> {card.atk}</span>
-                      <span className="flex items-center gap-1 text-[8px] text-gray-400 font-bold"><Shield className="w-2 h-2" /> {card.hp}</span>
-                    </div>
-                  </>
-                )}
-              </motion.div>
-            ))}
-          </div>
+        {/* Enemy HUD (Top Left) */}
+        <div className="fixed top-6 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border border-red-500/20 transition-all z-50">
+           <div className="w-10 h-10 rounded-xl border border-red-500/30 p-0.5 overflow-hidden bg-black shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+              <img src="/enemy_avatar.png" className="w-full h-full object-cover rounded-lg grayscale hover:grayscale-0 transition-all" />
+           </div>
+           <div className="space-y-1">
+              <div className="text-[10px] font-black text-red-500 uppercase tracking-wider">Malakor</div>
+              <div className="flex items-center gap-2">
+                 <div className="w-28 h-1 bg-black/60 rounded-full border border-white/5 overflow-hidden">
+                    <motion.div initial={{ width: '100%' }} animate={{ width: `${(enemyHp / 30) * 100}%` }} className="h-full bg-red-600 shadow-[0_0_8px_#dc2626]" />
+                 </div>
+                 <span className="text-[9px] font-black text-red-400 font-mono tracking-tighter">{enemyHp}/30</span>
+              </div>
+           </div>
         </div>
 
-        {/* TURN INDICATOR */}
-        <div className="flex flex-col items-center relative py-1">
-          <div className="h-[1px] w-full max-w-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent absolute top-1/2 -translate-y-1/2" />
-          <motion.div 
-             animate={{ scale: [1, 1.05, 1] }} 
-             transition={{ repeat: Infinity, duration: 3 }}
-             className="relative z-10 px-6 py-1 bg-gold/10 backdrop-blur-md border border-gold/30 rounded-full flex items-center gap-3 shadow-[0_0_30px_rgba(255,215,0,0.1)]"
-          >
-            <div className="w-1 h-1 rounded-full bg-gold shadow-[0_0_10px_#FFD700]" />
-            <span className="text-gold font-bold uppercase tracking-[0.3em] text-[10px]">
-              {turn === 'player' ? 'Seu Turno' : 'Turno de Malakor'}
-            </span>
-          </motion.div>
-        </div>
-
-        {/* BOTTOM FIELD (Player) */}
-        <div className="flex flex-col items-center flex-1 justify-center">
-          <div className="flex justify-center gap-4 py-2">
-            <AnimatePresence>
-              {field.map((card) => (
-                <motion.div
-                  key={card.id}
-                  layoutId={card.id}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    y: attackingInfo?.id === card.id 
-                      ? (attackingInfo.targetType === 'hero' ? -250 : -100) 
-                      : 0,
-                    zIndex: attackingInfo?.id === card.id ? 999 : 1
-                  }}
-                  transition={{
-                    y: { type: "spring", stiffness: 300, damping: 20 },
-                    default: { duration: 0.3 }
-                  }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  onClick={() => card.canAttack && turn === 'player' && setSelectedCardId(selectedCardId === card.id ? null : card.id)}
-                  className={`relative w-28 h-40 rounded-xl overflow-hidden transition-all cursor-pointer
-                    ${selectedCardId === card.id ? 'ring-4 ring-gold shadow-[0_0_30px_rgba(255,215,0,0.4)] z-[100] scale-110' : 'shadow-[0_0_25px_rgba(0,0,0,0.5)]'}
-                    ${card.canAttack && !selectedCardId && turn === 'player' ? 'ring-2 ring-emerald-500/50' : ''}
-                    ${card.image ? 'border-transparent' : 'bg-gradient-to-br from-gold/20 to-dark-card/90 border-2 border-gold/40 flex flex-col p-2.5'}`}
+        {/* Enemy Hand (Top Right - Fixed) */}
+        <div className="fixed top-6 right-10 flex flex-col items-end gap-1 z-50">
+            <span className="text-[7px] font-black text-red-500/30 uppercase tracking-[0.4em] pr-4">Mão do Oponente</span>
+            <div className="flex justify-end -space-x-10">
+              {[...Array(enemyHandCount)].map((_, i) => (
+                <motion.div 
+                  key={`enemy-hand-card-${i}`}
+                  initial={{ y: -20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  style={{ rotate: (i - Math.floor(enemyHandCount/2)) * -3 }}
+                  className="w-14 h-20 rounded-lg border border-white/10 shadow-xl bg-cover bg-center bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden"
                 >
-                  {card.image ? (
-                    <div className="relative w-full h-full">
-                      <img src={card.image} alt={card.name} className="w-full h-full object-contain pointer-events-none" />
-                      {/* HP Bar */}
-                      <div className="absolute bottom-1 left-2 right-2 h-1 bg-black/50 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${(card.hp / card.maxHp) * 100}%` }} />
-                      </div>
-                      {/* Can Attack Badge */}
-                      {card.canAttack && (
-                        <div className="absolute top-1 right-1 bg-emerald-500 text-[6px] font-bold px-1 rounded-sm shadow-lg animate-bounce">PRONTO</div>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[7px] font-bold text-gold uppercase tracking-tighter">{card.type}</span>
-                        <span className="w-3.5 h-3.5 rounded-full bg-blue-600/50 border border-blue-400 text-white flex items-center justify-center text-[7px] font-bold">{card.cost}</span>
-                      </div>
-                      <div className="w-full aspect-[4/3] rounded-lg bg-black/40 border border-white/5 mb-1.5 overflow-hidden">
-                         <div className="w-full h-full bg-gradient-to-tr from-gold/5 animate-pulse" />
-                      </div>
-                      <h4 className="text-[9px] font-bold text-white mb-0.5 tracking-tight">{card.name}</h4>
-                      <p className="text-[7px] text-gray-400 leading-tight">{card.desc}</p>
-                      <div className="mt-auto flex justify-between border-t border-white/10 pt-1">
-                        <span className="flex items-center gap-1 text-[8px] text-red-400 font-bold"><Sword className="w-2 h-2" /> {card.atk}</span>
-                        <span className="flex items-center gap-1 text-[8px] text-emerald-400 font-bold"><Shield className="w-2 h-2" /> {card.hp}</span>
-                      </div>
-                    </>
-                  )}
+                  <div className="absolute inset-0 bg-[url('/fundo.png')] bg-cover opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
+                  <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center bg-black/20">
+                    <div className="w-4 h-4 rounded-full bg-red-500/10 animate-pulse" />
+                  </div>
                 </motion.div>
               ))}
-              {Array.from({ length: Math.max(0, 3 - field.length) }).map((_, i) => (
-                <div key={`empty-${i}`} className="w-28 h-40 rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center">
-                   <span className="text-white/5 font-bold uppercase text-[8px] tracking-widest">Livre</span>
-                </div>
-              ))}
-            </AnimatePresence>
-          </div>
+            </div>
         </div>
 
-        {/* PLAYER SECTION (Bottom) */}
-        <section className="w-full flex items-end justify-between px-6 pb-2 pointer-events-none">
-          {/* Player Sidebar */}
-          <div className="w-64 pointer-events-auto">
-              <div className="bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-gold/30 shadow-[0_0_30px_rgba(255,215,0,0.05)]">
-                 <div className="flex items-center gap-3 mb-3">
-                    <img src="/hero_avatar.png" alt="Aeliana" className="w-12 h-12 rounded-lg border border-gold/40 shadow-inner" />
-                    <div>
-                      <div className="text-[9px] font-bold text-gold/60 uppercase tracking-widest leading-none">Você</div>
-                      <div className="text-xs font-black text-white uppercase tracking-wider">Aeliana Solari</div>
-                    </div>
+        {/* BOARD AREA: BATTLEFIELD & SIDEBAR */}
+        <div className="flex-1 flex gap-10 items-center justify-center relative">
+          
+          {/* LEFT SIDEBAR (BAN AREA) */}
+          <div className="w-32 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-1 group">
+              <div className="w-22 h-30 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all group-hover:border-red-500/40">
+                 <div className="text-xl font-black text-white/40 group-hover:text-white/60 transition-colors uppercase">BAN</div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-red-900/10 to-transparent" />
+              </div>
+            </div>
+          </div>
+
+          {/* BATTLEFIELD (4 ROWS TOTAL) */}
+          <div className="flex flex-col gap-6 max-w-[85%] mt-16">
+            
+            {/* ENEMY SIDE (2 ROWS) */}
+            <div className="flex flex-col gap-2">
+              {/* ENEMY ROW 2: REAÇÕES & BENÇÃO (REAÇÕES ESQUERDA, BENÇÃO DIREITA) */}
+              <div className="flex gap-2">
+                 {/* Reações (Index 6-8) */}
+                 <div className="flex gap-2 justify-start">
+                   {[6, 7, 8].map((i) => (
+                     <div key={`enemy-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-red-500/5 bg-red-500/5 flex items-center justify-center">
+                       <span className="text-white/40 font-black text-[6px] uppercase tracking-widest">Reações</span>
+                     </div>
+                   ))}
                  </div>
-                 <div className="space-y-2">
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[8px] font-bold text-emerald-400"><span>VIDA</span><span>{playerHp}/280</span></div>
-                      <div className="w-full h-1.5 bg-black/40 rounded-full border border-white/5 overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all duration-500" style={{ width: `${(playerHp / 280) * 100}%` }} />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[8px] font-bold text-blue-400"><span>MANA</span><span>3/5</span></div>
-                      <div className="w-full h-1.5 bg-black/40 rounded-full border border-white/5 overflow-hidden">
-                        <div className="h-full w-[60%] bg-gradient-to-r from-blue-500 to-indigo-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
-                      </div>
-                    </div>
+                 
+                 <div className="flex-1" />
+
+                 {/* Benção (Index 5 - Extrema Direita) */}
+                 <div className="w-22 h-30 rounded-xl border-dashed border-2 border-red-500/10 bg-red-500/5 flex items-center justify-center">
+                    <span className="text-white/40 font-black text-[7px] uppercase tracking-widest leading-none">Benção</span>
                  </div>
               </div>
-          </div>
 
-          {/* Hand - Simplified Deck Look & Play Logic */}
-          <div className="flex-1 flex justify-center -space-x-12 px-12 pointer-events-auto">
-            <AnimatePresence>
-              {hand.map((card, i) => (
-                <motion.div 
-                  key={card.id} 
-                  layoutId={card.id}
-                  whileHover="hover"
-                  initial="initial"
-                  exit={{ opacity: 0, scale: 0.5, y: -200 }}
-                  onClick={() => playCard(card)}
-                  className="relative w-24 h-48 cursor-pointer flex items-end"
-                >
-                  <motion.div
-                    variants={{
-                      initial: { y: 0, scale: 1, rotate: (i - Math.floor(hand.length/2)) * 5, zIndex: 10 + i },
-                      hover: { 
-                        scale: 1.2, 
-                        y: -80,
-                        rotate: 0,
-                        zIndex: 100,
-                        transition: { type: "spring", stiffness: 150, damping: 25 }
-                      }
-                    }}
-                    className={`w-24 h-34 rounded-lg overflow-hidden shadow-2xl relative
-                      ${card.image ? '' : 'bg-[#0a0c10] border border-white/10 flex flex-col p-2.5 bg-[url("https://www.transparenttextures.com/patterns/dark-matter.png")]'}`}
-                  >
-                    {card.image ? (
-                      <>
-                        <img 
-                          src={card.image} 
-                          alt={card.name} 
-                          className="w-full h-full object-contain grayscale-[0.5] group-hover:grayscale-0 transition-all duration-300" 
-                        />
-                        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors" />
-                      </>
+              {/* ENEMY ROW 1: COMBATENTES (Index 0-4) */}
+              <div className="flex gap-2 justify-center">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={`enemy-combatant-${i}`} className="w-24 h-32 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center">
+                    <span className="text-white/30 font-black text-[8px] uppercase font-serif">Combatentes</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Battle Divider */}
+            <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent flex items-center justify-center relative">
+               <div className="absolute inset-0 bg-white/5 blur-sm" />
+               <div className="relative px-6 py-1 bg-black/80 border border-white/10 rounded-full text-[6px] font-black text-gold uppercase tracking-[0.5em] shadow-2xl">
+                 Linhagem de Combate
+               </div>
+            </div>
+
+            {/* PLAYER SIDE (2 ROWS) */}
+            <div className="flex flex-col gap-2">
+              {/* PLAYER ROW 1: COMBATENTES (Index 0-4) */}
+              <div className="flex gap-2 justify-center">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={`player-combatant-${i}`} className="relative">
+                    <div className={`w-24 h-32 rounded-xl border-2 border-dashed transition-all duration-500 ${selectedCardId && field[i] && selectedCardId === field[i]?.id ? 'border-gold bg-gold/5' : (selectedCardId && !field[i] ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10 bg-black/20')} flex items-center justify-center`}>
+                      {field[i] ? (
+                        <motion.div
+                          layoutId={field[i]?.id}
+                          onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
+                          className={`w-full h-full rounded-xl overflow-hidden shadow-xl cursor-pointer ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold' : ''}`}
+                          onClick={() => field[i] && setSelectedCardId(selectedCardId === field[i]?.id ? null : field[i]!.id)}
+                        >
+                           <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
+                              <div className="absolute inset-0 bg-black/10" />
+                              <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                                 <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{field[i]?.atk}</span>
+                                 <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{field[i]?.hp}</span>
+                              </div>
+                           </div>
+                        </motion.div>
+                      ) : (
+                        <span className="text-white/20 font-black text-[8px] uppercase font-serif">Combatentes</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* PLAYER ROW 2: REAÇÕES (ESQUERDA) & BENÇÃO (DIREITA) */}
+              <div className="flex gap-2">
+                 {/* Reações (Index 6-8 - À ESQUERDA) */}
+                 <div className="flex gap-2">
+                   {[6, 7, 8].map((i) => (
+                     <div key={`player-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-emerald-500/10 bg-emerald-500/5 flex items-center justify-center transition-all hover:bg-emerald-500/10 hover:border-emerald-500/30 cursor-pointer">
+                       {field[i] ? (
+                         <div className="w-full h-full rounded-xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url("${field[i]!.image}")` }} />
+                       ) : (
+                         <span className="text-white/30 font-black text-[6px] uppercase tracking-widest">Reações</span>
+                       )}
+                     </div>
+                   ))}
+                 </div>
+
+                 <div className="flex-1" />
+
+                 {/* Benção (Index 5 - Extrema Direita) */}
+                 <div className="w-22 h-30 rounded-xl border-dashed border-2 border-gold/10 bg-gold/5 flex items-center justify-center transition-all hover:bg-gold/10 hover:border-gold/30 cursor-pointer">
+                    {field[5] ? (
+                      <div className="w-full h-full rounded-xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url("${field[5].image}")` }} />
                     ) : (
-                      <>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{card.type}</span>
-                          <span className="w-4 h-4 rounded-full bg-indigo-600/50 text-white flex items-center justify-center text-[8px] font-bold ring-1 ring-white/10">{card.cost}</span>
-                        </div>
-                        <div className="w-full h-14 rounded-lg bg-black/60 border border-white/5 mb-2 flex items-center justify-center">
-                          <Zap className="w-5 h-5 text-white/5" />
-                        </div>
-                        <h4 className="text-[9px] font-bold text-white/80 mb-0.5 tracking-tight">{card.name}</h4>
-                        <p className="text-[7px] text-white/30 leading-tight">Clique para jogar</p>
-                        <div className="mt-auto pt-1 border-t border-white/5 flex justify-between text-[7px] font-bold text-white/20">
-                          <span>ATK {card.atk}</span>
-                          <span>DEF {card.def}</span>
-                        </div>
-                      </>
+                      <span className="text-white/50 font-black text-[7px] uppercase tracking-widest leading-none">Benção</span>
                     )}
-                  </motion.div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                 </div>
+              </div>
+            </div>
           </div>
 
-          {/* History Sidebar */}
-          <div className="w-64 pointer-events-auto">
-             <div className="bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 w-full flex flex-col gap-2 shadow-xl">
-                <div className="flex items-center justify-between text-[9px] font-bold text-gold border-b border-white/5 pb-2">
-                  <span className="flex items-center gap-1"><Trophy className="w-3 h-3" /> HISTÓRICO</span>
-                  <span className="text-white/40">v1.2.4</span>
-                </div>
-                <div className="space-y-1.5 h-16 overflow-y-auto pr-2 custom-scrollbar text-[7px] leading-tight">
-                  {history.map((msg, idx) => (
-                    <p key={idx} className={msg.includes('Jogou') ? 'text-emerald-400' : 'text-gray-400'}>{msg}</p>
-                  ))}
-                </div>
-                <button 
-                  onClick={endTurn}
-                  disabled={turn !== 'player'}
-                  className={`w-full py-2 border rounded-lg font-bold text-[9px] transition-all uppercase tracking-widest
-                    ${turn === 'player' 
-                      ? 'bg-emerald-600/20 hover:bg-emerald-600/40 border-emerald-500/30 text-emerald-400' 
-                      : 'bg-gray-800/20 border-gray-700 text-gray-600 cursor-not-allowed'}`}
-                >
-                  {turn === 'player' ? 'FINALIZAR TURNO' : 'AGUARDE...'}
-                </button>
-             </div>
+          {/* RIGHT SIDEBAR (Fixed column) */}
+          <div className="w-32 flex flex-col gap-4 items-center h-[70vh] justify-center pb-10">
+            {/* EXÍLIO */}
+            <div className="flex flex-col items-center gap-1 group">
+              <div className="w-22 h-30 rounded-xl border-2 border-white/5 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all group-hover:border-white/20">
+                 <div className="text-lg font-black text-white/40 group-hover:text-white/60 transition-colors uppercase leading-tight italic text-center px-2 font-serif">Exílio</div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/20 to-transparent" />
+              </div>
+            </div>
+
+            {/* DECK (Bottom) */}
+            <div className="flex flex-col items-center gap-1 group">
+              <div 
+                className="relative w-22 h-30 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:border-white/40 cursor-pointer"
+                style={{ backgroundImage: 'url("/fundo.png")' }}
+              >
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                <div className="text-2xl font-black text-white/50 group-hover:text-white/80 transition-all uppercase font-serif">DECK</div>
+                <div className="absolute bottom-2 font-mono text-[10px] text-white/80 font-black">{deck.length}</div>
+              </div>
+            </div>
+            
+            {/* END TURN */}
+            <div className="mt-4 w-full">
+               <button 
+                onClick={endTurn}
+                disabled={turn !== 'player'}
+                className={`group relative overflow-hidden px-4 py-4 rounded-xl font-black text-[9px] transition-all uppercase tracking-[0.2em] w-full shadow-lg border
+                  ${turn === 'player' 
+                    ? 'bg-emerald-600 border-emerald-400/40 text-gold hover:bg-emerald-500 active:scale-95' 
+                    : 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed'}`}
+               >
+                 {turn === 'player' ? 'Finalizar Turno' : 'Aguarde'}
+               </button>
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* HUD Player */}
+        <div className="w-full flex justify-between items-end gap-12 mt-auto px-10 pb-6 pointer-events-none">
+            {/* Player Info (Fixed Bottom Left) */}
+            <div 
+              onClick={() => selectedCardId && handleCombat(selectedCardId, 'hero', true)}
+              className="pointer-events-auto flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/5 transition-all cursor-pointer mb-2"
+            >
+               <div className="w-10 h-10 rounded-xl border border-gold/30 p-0.5 overflow-hidden bg-black">
+                  <img src="/hero_avatar.png" className="w-full h-full object-cover rounded-lg" />
+               </div>
+               <div className="space-y-1">
+                  <div className="text-[10px] font-black text-white uppercase tracking-wider">Aeliana Solari</div>
+                  <div className="flex items-center gap-2">
+                     <div className="w-28 h-1 bg-black/60 rounded-full border border-white/5 overflow-hidden">
+                        <motion.div initial={{ width: '100%' }} animate={{ width: `${(playerHp / 30) * 100}%` }} className="h-full bg-emerald-500" />
+                     </div>
+                     <span className="text-[9px] font-black text-emerald-400 font-mono tracking-tighter">{playerHp}/30</span>
+                  </div>
+               </div>
+            </div>
+
+            {/* Hand (Pinned to Bottom Right - Fixed) */}
+            <div className="fixed bottom-10 right-10 pointer-events-auto flex flex-col items-end gap-1">
+                <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em] pr-2">Sua Mão</span>
+                <div className="flex justify-end -space-x-8">
+                  <AnimatePresence>
+                    {hand.map((card, i) => (
+                      <motion.div 
+                        key={card.id} 
+                        layoutId={card.id}
+                        whileHover="hover"
+                        initial="initial"
+                        exit={{ opacity: 0, scale: 0.5, y: -200 }}
+                        onContextMenu={(e) => handleInspect(e, card)}
+                        onClick={() => playCard(card)}
+                        className="relative w-18 h-26 cursor-pointer flex items-end"
+                      >
+                        <motion.div
+                          variants={{
+                            initial: { y: 0, scale: 1, rotate: (i - Math.floor(hand.length/2)) * 3, zIndex: 10 + i },
+                            hover: { 
+                              scale: 1.3, 
+                              y: -25,
+                              rotate: 0,
+                              zIndex: 100,
+                              transition: { type: "spring", stiffness: 200, damping: 20 }
+                            }
+                          }}
+                          className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative bg-cover bg-center border border-white/20"
+                          style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.png")' }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/60" />
+                          {!card.image && (
+                            <div className="p-2 flex flex-col h-full items-center justify-center">
+                                <h4 className="text-[7px] font-black text-white text-center drop-shadow-lg uppercase leading-tight">{card.name}</h4>
+                            </div>
+                          )}
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+            </div>
+        </div>
       </div>
       
-      {/* Overlay Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,0.7)_100%)]" />
+      {/* Visual FX Layers */}
+      <div className="fixed inset-0 pointer-events-none z-20">
+        <div 
+          className="absolute inset-0" 
+          style={{ background: 'radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.4) 100%)' }} 
+        />
+        <div 
+          className="absolute inset-0 bg-black/10 mix-blend-overlay opacity-30" 
+          style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")' }} 
+        />
       </div>
+
+      {/* Card Inspection Modal */}
+      <AnimatePresence>
+        {inspectedCard && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setInspectedCard(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 cursor-pointer"
+          >
+             <motion.div
+               initial={{ scale: 0.9, y: 20 }}
+               animate={{ scale: 1, y: 0 }}
+               exit={{ scale: 0.9, opacity: 0 }}
+               onClick={(e) => e.stopPropagation()}
+               className="flex flex-row max-w-6xl w-full gap-8 items-stretch p-4 bg-black/40 rounded-lg border border-white/5"
+             >
+                {/* LEFT: FULL CARD VIEW */}
+                <div className="flex-1 flex items-center justify-center">
+                   <div 
+                     className="w-[450px] aspect-[2/3] bg-black shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                   >
+                     <img 
+                       src={inspectedCard.image || '/fundo.png'} 
+                       className="w-full h-full object-contain"
+                       alt={inspectedCard.name}
+                     />
+                   </div>
+                </div>
+
+                {/* RIGHT: INFO PANEL */}
+                <div className="flex-1 flex flex-col gap-6 py-4">
+                   {/* Name Box */}
+                   <div className="p-4 bg-white/5 border-l-4 border-red-600 rounded-sm">
+                      <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest block mb-1">Combatente</span>
+                      <h2 className="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg">{inspectedCard.name}</h2>
+                   </div>
+
+                   {/* Description/Type Box */}
+                   <div className="flex-1 p-6 bg-white/5 border border-white/10 rounded-sm flex flex-col gap-4">
+                      <div className="flex gap-2">
+                        <span className={`px-3 py-1 rounded-sm text-xs font-black uppercase tracking-widest ${inspectedCard.type === 'Ouro' ? 'bg-gold text-black' : inspectedCard.type === 'Prata' ? 'bg-silver text-white' : 'bg-gray-600 text-white'}`}>
+                           Raridade: {inspectedCard.type}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2">
+                        <span className="text-gold font-black text-xs uppercase tracking-wider underline decoration-gold/30">Habilidades & Efeito:</span>
+                        <p className="text-gray-300 text-sm font-medium leading-relaxed italic">{inspectedCard.desc || 'Esta carta possui efeitos ancestrais que se manifestam durante a batalha.'}</p>
+                      </div>
+
+                      <div className="mt-auto pt-4 border-t border-white/5 text-[10px] text-white/20 uppercase tracking-widest flex justify-between">
+                        <span>ID: {inspectedCard.id}</span>
+                        <span>Custo Energético: {inspectedCard.cost}</span>
+                      </div>
+                   </div>
+
+                   {/* Stats Grid (ATK & DEF Box) */}
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-6 bg-red-950/20 border-2 border-red-500/30 flex flex-col items-center justify-center gap-1 group transition-all hover:bg-red-500/10">
+                         <div className="flex items-center gap-2 mb-2">
+                            <Sword className="w-6 h-6 text-red-500" />
+                            <span className="text-gray-400 font-black text-xs uppercase">Ataque</span>
+                         </div>
+                         <span className="text-5xl font-black text-white drop-shadow-lg">{inspectedCard.atk}</span>
+                      </div>
+                      
+                      <div className="p-6 bg-emerald-950/20 border-2 border-emerald-500/30 flex flex-col items-center justify-center gap-1 group transition-all hover:bg-emerald-500/10">
+                         <div className="flex items-center gap-2 mb-2">
+                            <Heart className="w-6 h-6 text-emerald-500" />
+                            <span className="text-gray-400 font-black text-xs uppercase">Defesa</span>
+                         </div>
+                         <span className="text-5xl font-black text-white drop-shadow-lg">{inspectedCard.hp}/{inspectedCard.maxHp}</span>
+                      </div>
+                   </div>
+
+                   {/* Close Button Button */}
+                   <button 
+                     onClick={() => setInspectedCard(null)}
+                     className="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 text-white font-black uppercase tracking-[0.5em] text-xs transition-all mt-2"
+                   >
+                     Fechar Detalhes [ESC]
+                   </button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
