@@ -132,6 +132,9 @@ export default function Arena({ onClose }: ArenaProps) {
     "● BOA SORTE, HERÓI"
   ]);
 
+  const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
+  const [isViewingExile, setIsViewingExile] = useState(false);
+
   const drawCard = () => {
     if (deck.length > 0) {
       const nextCard = deck[0];
@@ -602,6 +605,8 @@ export default function Arena({ onClose }: ArenaProps) {
                             transition: { duration: 0.6, ease: "circIn" } 
                           }}
                           transition={{ type: "spring", stiffness: 150, damping: 15, x: { type: "tween", duration: 0.2 } }}
+                          onMouseEnter={() => setHoveredCard(enemyField[i])}
+                          onMouseLeave={() => setHoveredCard(null)}
                           className="w-full h-full relative p-0 bg-cover bg-center rounded-xl overflow-hidden shadow-2xl" 
                           style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
                         >
@@ -750,6 +755,8 @@ export default function Arena({ onClose }: ArenaProps) {
                                   x: { type: "tween", duration: 0.2 }
                                 }}
                                 onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
+                                onMouseEnter={() => setHoveredCard(field[i])}
+                                onMouseLeave={() => setHoveredCard(null)}
                                 className={`w-full h-full rounded-xl overflow-hidden shadow-xl cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''} ${!field[i]?.canAttack ? 'brightness-90' : ''}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -831,28 +838,31 @@ export default function Arena({ onClose }: ArenaProps) {
            {/* RIGHT SIDEBAR (Fixed column) */}
            <div className="w-32 flex flex-col gap-10 items-center h-[70vh] justify-center pb-10 self-center">
              {/* EXÍLIO */}
-             <div className="w-full h-44 rounded-xl border-4 border-white/5 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden group">
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                 <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Exílio</span>
-                 <div className="relative w-20 h-28 transform group-hover:scale-105 transition-transform">
-                   {exile.length > 0 ? (
-                     <motion.div 
-                        layoutId={exile[exile.length - 1].id}
-                        className="w-full h-full rounded-lg bg-cover bg-center border border-white/20 shadow-2xl relative overflow-hidden"
-                        style={{ backgroundImage: `url("${exile[exile.length - 1].image}")` }}
-                     >
-                        <div className="absolute inset-0 bg-black/40" />
-                        <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/60 rounded text-[8px] font-black text-white/60">
-                          {exile.length}
-                        </div>
-                     </motion.div>
-                   ) : (
-                     <div className="w-full h-full border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center">
-                        <Skull className="w-8 h-8 text-white/5" />
-                     </div>
-                   )}
-                 </div>
-              </div>
+             <div 
+                onClick={() => exile.length > 0 && setIsViewingExile(true)}
+                className="w-full h-44 rounded-xl border-4 border-white/5 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-white/20 transition-all"
+              >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Exílio</span>
+                  <div className="relative w-20 h-28 transform group-hover:scale-105 transition-transform">
+                    {exile.length > 0 ? (
+                      <motion.div 
+                         layoutId={exile[exile.length - 1].id}
+                         className="w-full h-full rounded-lg bg-cover bg-center border border-white/20 shadow-2xl relative overflow-hidden"
+                         style={{ backgroundImage: `url("${exile[exile.length - 1].image}")` }}
+                      >
+                         <div className="absolute inset-0 bg-black/40" />
+                         <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/60 rounded text-[8px] font-black text-white/60">
+                           {exile.length}
+                         </div>
+                      </motion.div>
+                    ) : (
+                      <div className="w-full h-full border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center">
+                         <Skull className="w-8 h-8 text-white/5" />
+                      </div>
+                    )}
+                  </div>
+               </div>
 
              {/* DECK (Bottom) */}
              <div className="flex flex-col items-center gap-2 group">
@@ -944,6 +954,8 @@ export default function Arena({ onClose }: ArenaProps) {
                           initial="initial"
                           animate="animate"
                           whileHover="hover"
+                          onMouseEnter={() => setHoveredCard(card)}
+                          onMouseLeave={() => setHoveredCard(null)}
                           className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative bg-cover bg-center border border-white/20"
                           style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.png")' }}
                         >
@@ -959,6 +971,8 @@ export default function Arena({ onClose }: ArenaProps) {
                   </AnimatePresence>
                 </div>
             </div>
+
+
         </div>
       </div>
       
@@ -1061,7 +1075,127 @@ export default function Arena({ onClose }: ArenaProps) {
              </motion.div>
           </motion.div>
         )}
+
+        {/* EXILE LIST PANEL (Side Panel instead of Modal) */}
+        {isViewingExile && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="fixed top-1/2 -translate-y-1/2 right-44 z-[110] w-64 max-h-[75vh] flex flex-col bg-black/40 backdrop-blur-3xl rounded-[2rem] border-2 border-white/5 shadow-[0_0_100px_rgba(0,0,0,0.9)] overflow-hidden"
+          >
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-red-950/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <Skull className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-black text-white uppercase tracking-widest">Exílio</h2>
+                  <p className="text-[8px] font-mono text-red-500/60 uppercase">{exile.length} cartas</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsViewingExile(false)}
+                className="p-2 hover:bg-white/5 rounded-full transition-all text-white/20 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-4">
+              {exile.slice().reverse().map((card, idx) => (
+                <motion.div
+                  key={`exile-card-${card.id}-${idx}`}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onMouseEnter={() => setHoveredCard(card)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  className="group relative"
+                >
+                  <div className="aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all shadow-xl relative cursor-pointer">
+                    <img src={card.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all duration-500" />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all" />
+                    
+                    {/* Stats overlay */}
+                    <div className="absolute bottom-2 inset-x-3 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{card.atk}</span>
+                      <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{card.hp}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="p-4 bg-black/20 text-center">
+               <span className="text-[8px] font-black text-white/10 uppercase tracking-[0.3em]">Fim da Cripta</span>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
+
+      {/* LEFT INFORMATION PANEL (Fixed Side Panel) */}
+      <div className="fixed top-1/2 left-8 -translate-y-1/2 z-40 w-80 pointer-events-none">
+        <AnimatePresence>
+          {hoveredCard && (
+            <motion.div
+              initial={{ opacity: 0, x: -50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -50, scale: 0.95 }}
+              className="bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] pointer-events-auto"
+            >
+              <div className="relative aspect-[4/5] overflow-hidden border-b border-white/10">
+                <img src={hoveredCard.image} className="w-full h-full object-cover" alt={hoveredCard.name} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                
+                {/* Stats in overlay for compactness */}
+                <div className="absolute bottom-4 inset-x-6 flex justify-between items-end">
+                   <div className="flex flex-col">
+                      <span className="text-xs font-black text-red-500 uppercase leading-none">Ataque</span>
+                      <span className="text-4xl font-black text-white italic">{hoveredCard.atk}</span>
+                   </div>
+                   <div className="flex flex-col items-end">
+                      <span className="text-xs font-black text-emerald-500 uppercase leading-none">Defesa</span>
+                      <span className="text-4xl font-black text-white italic">{hoveredCard.hp}/{hoveredCard.maxHp}</span>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${hoveredCard.type === 'Ouro' ? 'bg-gold text-black' : hoveredCard.type === 'Prata' ? 'bg-silver text-white' : 'bg-gray-600 text-white'}`}>
+                      {hoveredCard.type}
+                    </span>
+                    <div className="h-px flex-1 bg-white/10" />
+                    <span className="text-white/40 text-[9px] font-black font-mono">ID: {hoveredCard.id}</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-md">
+                    {hoveredCard.name}
+                  </h3>
+                </div>
+
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-gray-300 text-[11px] font-medium leading-relaxed italic">
+                    "{hoveredCard.desc || 'Efeitos ancestrais se manifestam nesta unidade.'}"
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-white/40">
+                   <div className="flex items-center gap-1.5">
+                      <Zap className="w-3 h-3 text-gold" />
+                      <span>Custo: {hoveredCard.cost}</span>
+                   </div>
+                   <div className="flex items-center gap-1.5">
+                      <Trophy className="w-3 h-3 text-gold" />
+                      <span>Raridade: {hoveredCard.stars}★</span>
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
