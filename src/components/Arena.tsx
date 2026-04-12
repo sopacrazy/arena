@@ -607,7 +607,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           transition={{ type: "spring", stiffness: 150, damping: 15, x: { type: "tween", duration: 0.2 } }}
                           onMouseEnter={() => setHoveredCard(enemyField[i])}
                           onMouseLeave={() => setHoveredCard(null)}
-                          className="w-full h-full relative p-0 bg-cover bg-center rounded-xl overflow-hidden shadow-2xl" 
+                          className="w-full h-full relative p-0 bg-contain bg-center bg-no-repeat overflow-visible" 
                           style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
                         >
                            <div className="absolute inset-0 bg-black/10" />
@@ -757,7 +757,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                 onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
                                 onMouseEnter={() => setHoveredCard(field[i])}
                                 onMouseLeave={() => setHoveredCard(null)}
-                                className={`w-full h-full rounded-xl overflow-hidden shadow-xl cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''} ${!field[i]?.canAttack ? 'brightness-90' : ''}`}
+                                className={`w-full h-full overflow-visible cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''} ${!field[i]?.canAttack ? 'brightness-90' : ''}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (selectedHandCardId) {
@@ -768,7 +768,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                   }
                                 }}
                               >
-                                 <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
+                                 <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
                                      <div className="absolute inset-0 bg-black/10" />
                                      
                                      {/* SMALL SLEEPING BADGE */}
@@ -955,9 +955,9 @@ export default function Arena({ onClose }: ArenaProps) {
                           animate="animate"
                           whileHover="hover"
                           onMouseEnter={() => setHoveredCard(card)}
-                          onMouseLeave={() => setHoveredCard(null)}
-                          className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative bg-cover bg-center border border-white/20"
-                          style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.png")' }}
+                                 onMouseLeave={() => setHoveredCard(null)}
+                                 className="w-full h-full overflow-visible relative bg-contain bg-center bg-no-repeat"
+                                 style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.png")' }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/60" />
                           {!card.image && (
@@ -1144,9 +1144,9 @@ export default function Arena({ onClose }: ArenaProps) {
               exit={{ opacity: 0, x: -50, scale: 0.95 }}
               className="bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] pointer-events-auto"
             >
-              <div className="relative aspect-[4/5] overflow-hidden border-b border-white/10">
-                <img src={hoveredCard.image} className="w-full h-full object-cover" alt={hoveredCard.name} />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+              <div className="relative aspect-[2/3] overflow-visible">
+                <img src={hoveredCard.image} className="w-full h-full object-contain" alt={hoveredCard.name} />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 via-transparent to-transparent" />
                 
                 {/* Stats in overlay for compactness */}
                 <div className="absolute bottom-4 inset-x-6 flex justify-between items-end">
