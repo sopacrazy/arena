@@ -895,9 +895,9 @@ export default function Arena({ onClose }: ArenaProps) {
             </div>
 
             {/* Hand (Pinned to Bottom Right - Fixed) */}
-            <div className="fixed bottom-10 right-10 pointer-events-auto flex flex-col items-end gap-1">
-                <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em] pr-2">Sua Mão</span>
-                <div className="flex justify-end -space-x-8">
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
+                <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em]">Sua Mão</span>
+                <div className="flex justify-center -space-x-8">
                   <AnimatePresence>
                     {hand.map((card, i) => (
                       <motion.div 
