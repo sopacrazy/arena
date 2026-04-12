@@ -476,7 +476,7 @@ export default function Arena({ onClose }: ArenaProps) {
         )}
       </AnimatePresence>
 
-      <div className={`relative z-10 w-full h-full flex flex-col p-4 transition-opacity duration-1000 ${gameStatus !== 'playing' ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
+      <div className={`relative z-10 w-full h-full flex flex-col pt-2 pb-4 px-4 transition-opacity duration-1000 ${gameStatus !== 'playing' ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
         
         {/* Enemy HUD (Top Left) */}
         <div 
@@ -526,10 +526,10 @@ export default function Arena({ onClose }: ArenaProps) {
         </div>
 
         {/* BOARD AREA: BATTLEFIELD & SIDEBAR */}
-        <div className="flex-1 flex gap-10 items-center justify-center relative" onClick={() => setActiveActionMenu(null)}>
+        <div className="flex-1 flex gap-10 items-start justify-center relative pt-2" onClick={() => setActiveActionMenu(null)}>
           
           {/* LEFT SIDEBAR (BUTTON & BAN AREA) */}
-          <div className="w-56 flex items-center justify-center gap-6">
+          <div className="w-56 flex items-center justify-center gap-6 self-center">
             {/* COMPACT END TURN BUTTON (Now First) */}
             <button 
                 onClick={endTurn}
@@ -553,7 +553,7 @@ export default function Arena({ onClose }: ArenaProps) {
           </div>
 
           {/* BATTLEFIELD (4 ROWS TOTAL) */}
-          <div className="flex flex-col gap-4 max-w-[85%] mt-4">
+          <div className="flex flex-col gap-2 max-w-[85%] mt-0">
             
             {/* ENEMY SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
@@ -579,7 +579,7 @@ export default function Arena({ onClose }: ArenaProps) {
               {/* ENEMY ROW 1: COMBATENTES (Index 0-4) */}
               <div className="flex gap-2 justify-center">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={`enemy-combatant-${i}`} className="w-24 h-32 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center relative">
+                  <div key={`enemy-combatant-${i}`} className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center relative">
                     <AnimatePresence mode="popLayout">
                       {enemyField[i] && (
                         <motion.div 
@@ -829,7 +829,7 @@ export default function Arena({ onClose }: ArenaProps) {
           </div>
 
            {/* RIGHT SIDEBAR (Fixed column) */}
-           <div className="w-32 flex flex-col gap-10 items-center h-[70vh] justify-center pb-10">
+           <div className="w-32 flex flex-col gap-10 items-center h-[70vh] justify-center pb-10 self-center">
              {/* EXÍLIO */}
              <div className="w-full h-44 rounded-xl border-4 border-white/5 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden group">
                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -897,7 +897,7 @@ export default function Arena({ onClose }: ArenaProps) {
             {/* Hand (Pinned to Bottom Right - Fixed) */}
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
                 <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em]">Sua Mão</span>
-                <div className="flex justify-center -space-x-8">
+                <div className="flex justify-center -space-x-2">
                   <AnimatePresence>
                     {hand.map((card, i) => (
                       <motion.div 
@@ -915,7 +915,7 @@ export default function Arena({ onClose }: ArenaProps) {
                              setSelectedCardId(null);
                           }
                         }}
-                        className={`relative w-24 h-34 cursor-pointer flex items-end -ml-8 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-6 scale-110 z-50' : 'hover:-translate-y-2'}`}
+                        className={`relative w-24 h-34 cursor-pointer flex items-end -ml-2 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-6 scale-110 z-50' : 'hover:-translate-y-2'}`}
                       >
                          {/* SELECTION GLOW */}
                          {selectedHandCardId === card.id && (
