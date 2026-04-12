@@ -1,85 +1,97 @@
 import { motion } from 'motion/react';
-import { ChevronRight } from 'lucide-react';
+import { Play, Tv } from 'lucide-react';
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+      {/* Cinematic Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="/rpg_landing_background_1775958332750.png" 
+          alt="RPG Background" 
+          className="w-full h-full object-cover scale-105"
+          draggable="false"
+        />
+        {/* Darker overlays for much better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      {/* Main Content Container */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 flex flex-col items-center text-center pt-20">
+        
+        {/* Center Logo Area */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="mb-8 flex flex-col items-center"
+        >
+          <img 
+            src="/logo.png" 
+            alt="Arcane Crusade" 
+            className="w-full max-w-[400px] h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.8)]"
+          />
           
-          {/* Text Content */}
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-center lg:text-left"
-          >
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-              Epic Card Duel <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-200 drop-shadow-[0_0_10px_rgba(255,215,0,0.3)]">
-                Awaits You!
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-400 mb-8 max-w-2xl mx-auto lg:mx-0">
-              Build your ultimate deck, master unique elements, and challenge players worldwide in the most dynamic modern trading card game.
-            </p>
+          <p className="mt-8 text-lg sm:text-xl text-white font-medium max-w-3xl mx-auto leading-relaxed italic drop-shadow-md">
+            Forje alianças, conquiste inimigos e escreva sua própria lenda épica.
+          </p>
+        </motion.div>
+
+        {/* Action Buttons - Moved VERY high up to avoid the timeline line completely */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center gap-6 mb-48 lg:mb-56"
+        >
+          <button className="group relative px-12 py-4 bg-gradient-to-b from-yellow-700 to-yellow-900 rounded-lg overflow-hidden border border-yellow-500/50 shadow-[0_10px_30px_-10px_rgba(180,130,0,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-transparent transition-all" />
+            <span className="relative flex items-center gap-2 text-white font-bold text-lg uppercase tracking-widest">
+              Jogar Agora
+            </span>
+          </button>
+
+          <button className="group relative px-10 py-4 bg-white/5 backdrop-blur-md rounded-lg border border-white/20 hover:border-white/40 transition-all hover:bg-white/10 active:scale-95 flex items-center gap-3 text-white font-bold text-lg uppercase tracking-widest cursor-pointer">
+            <Tv size={20} className="text-white/70 group-hover:text-white transition-colors" />
+            Ver Trailer
+          </button>
+        </motion.div>
+      </div>
+
+      {/* Bottom Events Bar - Portuguese */}
+      <div className="absolute bottom-0 left-0 w-full z-20">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connector Lines */}
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
             
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <button className="w-full sm:w-auto bg-gold hover:bg-gold-hover text-dark-bg font-bold text-lg py-4 px-8 rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(255,215,0,0.4)] flex items-center justify-center gap-2 cursor-pointer">
-                Play Now <ChevronRight size={20} />
-              </button>
-              <button className="w-full sm:w-auto bg-transparent border-2 border-white/20 hover:border-white/50 text-white font-bold text-lg py-4 px-8 rounded-full transition-all hover:bg-white/5 cursor-pointer">
-                Learn More
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Cards Fan Effect */}
-          <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] flex justify-center items-center perspective-1000 mt-12 lg:mt-0">
-            {/* Left Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 100, rotate: -20 }}
-              animate={{ opacity: 1, y: 0, rotate: -15 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              whileHover={{ y: -20, rotate: -10, scale: 1.05, zIndex: 30 }}
-              className="absolute left-1/2 -translate-x-[110%] sm:-translate-x-[120%] w-40 sm:w-64 aspect-[2.5/3.5] rounded-2xl border border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)] bg-dark-card overflow-hidden cursor-pointer"
-            >
-              <img src="https://images.unsplash.com/photo-1618331835717-801e976710b2?auto=format&fit=crop&q=80&w=400&h=560" alt="Magic Card" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 font-display font-bold text-blue-300 text-sm sm:text-base">Frost Nova</div>
-            </motion.div>
-
-            {/* Center Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: -20, rotate: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              whileHover={{ y: -40, scale: 1.1, zIndex: 40 }}
-              className="absolute left-1/2 -translate-x-1/2 w-48 sm:w-72 aspect-[2.5/3.5] rounded-2xl border-2 border-gold shadow-[0_0_40px_rgba(255,215,0,0.4)] bg-dark-card overflow-hidden z-20 cursor-pointer"
-            >
-              <img src="https://images.unsplash.com/photo-1542779283-429940ce8336?auto=format&fit=crop&q=80&w=400&h=560" alt="Legendary Card" className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-yellow-900/90 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 font-display font-bold text-gold text-lg sm:text-xl">Solar Flare</div>
-            </motion.div>
-
-            {/* Right Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 100, rotate: 20 }}
-              animate={{ opacity: 1, y: 0, rotate: 15 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              whileHover={{ y: -20, rotate: 10, scale: 1.05, zIndex: 30 }}
-              className="absolute left-1/2 translate-x-[10%] sm:translate-x-[20%] w-40 sm:w-64 aspect-[2.5/3.5] rounded-2xl border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)] bg-dark-card overflow-hidden cursor-pointer"
-            >
-              <img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=400&h=560" alt="Attack Card" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-red-900/90 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 font-display font-bold text-red-300 text-sm sm:text-base">Crimson Strike</div>
-            </motion.div>
+            {/* Event Cards */}
+            {[
+              { date: "18 de NOVEMBRO, 2026", name: "Baile de Máscaras ao Luar" },
+              { date: "3 de DEZEMBRO, 2026", name: "Ascensão dos Titãs Elementais" },
+              { date: "22 de DEZEMBRO, 2026", name: "Festival das Maravilhas de Inverno" }
+            ].map((event, idx) => (
+              <div key={idx} className="flex flex-col items-center group relative pt-8">
+                {/* Dot indicator */}
+                <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-gold shadow-[0_0_10px_var(--color-gold)]" />
+                
+                <span className="bg-dark-bg/60 backdrop-blur-sm border border-gold/30 px-4 py-0.5 rounded-full text-[10px] text-gold font-bold tracking-tighter mb-4 opacity-70 group-hover:opacity-100 transition-opacity uppercase">
+                  Evento
+                </span>
+                
+                <h3 className="text-white font-bold text-xs sm:text-sm tracking-widest mb-1 text-center">
+                  {event.date}
+                </h3>
+                <p className="text-white/60 text-[10px] sm:text-xs text-center font-light uppercase tracking-[0.2em]">
+                  {event.name}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </section>
   );
 }
+

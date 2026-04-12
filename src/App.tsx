@@ -18,16 +18,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg text-white font-sans selection:bg-gold/30">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-gold/30 flex flex-col">
       <Navbar onArenaClick={() => setShowArena(true)} />
-      <main>
+      <main className="flex-grow">
         <Hero />
-        <FeatureIcons />
-        <CardPreview />
       </main>
       
-      <footer className="bg-dark-bg border-t border-white/10 py-8 text-center text-gray-500 text-sm">
-        <p>&copy; {new Date().getFullYear()} Aetheria Legends. All rights reserved.</p>
+      <footer className="bg-black py-6 text-center text-gray-600 text-[10px] tracking-[0.3em] uppercase">
+        <p>&copy; {new Date().getFullYear()} Realms Fantasy Souls. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

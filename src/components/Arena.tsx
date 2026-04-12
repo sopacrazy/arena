@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw } from 'lucide-react';
+import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon } from 'lucide-react';
 
 interface Card {
   id: string;
@@ -10,6 +10,7 @@ interface Card {
   atk: number;
   hp: number;
   maxHp: number;
+  stars: number;
   desc: string;
   color: string;
   image?: string;
@@ -51,6 +52,7 @@ const DECK_POOL: Card[] = [
     atk: 1 + Math.floor(Math.random() * 3),
     hp: 2 + Math.floor(Math.random() * 3),
     maxHp: 5,
+    stars: 1 + Math.floor(Math.random() * 2),
     cost: 1 + Math.floor(i/3),
     desc: 'Unidade básica',
     color: 'gray',
@@ -64,6 +66,7 @@ const DECK_POOL: Card[] = [
     atk: 4 + Math.floor(Math.random() * 3),
     hp: 4 + Math.floor(Math.random() * 3),
     maxHp: 8,
+    stars: 3 + Math.floor(Math.random() * 2),
     cost: 4 + i,
     desc: 'Unidade de elite',
     color: 'silver',
@@ -77,6 +80,7 @@ const DECK_POOL: Card[] = [
     atk: 7 + Math.floor(Math.random() * 4),
     hp: 8 + Math.floor(Math.random() * 4),
     maxHp: 12,
+    stars: 6 + Math.floor(Math.random() * 3),
     cost: 7 + i,
     desc: 'Lenda do campo',
     color: 'yellow',
@@ -117,9 +121,11 @@ export default function Arena({ onClose }: ArenaProps) {
   const [isTransitioning, setIsTransitioning] = useState<string | null>(null);
   
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [inspectedCard, setInspectedCard] = useState<Card | null>(null);
   const [activeActionMenu, setActiveActionMenu] = useState<{ card: Card, index: number } | null>(null);
-  const [attackingInfo, setAttackingInfo] = useState<{ id: string, targetType: 'card' | 'hero', isOpponent?: boolean } | null>(null);
+  const [exile, setExile] = useState<Card[]>([]);
+  const [attackingInfo, setAttackingInfo] = useState<{ id: string, targetId: string, isOpponent?: boolean, xOffset?: number } | null>(null);
   
   const [history, setHistory] = useState<string[]>([
     "● COMBATE INICIADO",
@@ -151,6 +157,7 @@ export default function Arena({ onClose }: ArenaProps) {
     setHistory(["● BLOCO DE NOTAS LIMPO", "● PARTIDA REINICIADA"]);
     setSelectedCardId(null);
     setInspectedCard(null);
+    setExile([]);
   };
 
   const handleInspect = (e: React.MouseEvent, card: Card) => {
@@ -174,135 +181,232 @@ export default function Arena({ onClose }: ArenaProps) {
     setHistory(prev => [`● Oponente: Fase de Compra`, ...prev]);
     setEnemyHandCount(prev => prev + 1);
     
+    // Recover enemy units fatigue
+    setEnemyField(prev => prev.map(c => c ? { ...c, canAttack: true } : null));
+    
     runOpponentAI();
   };
 
   const runOpponentAI = async () => {
-    // 1. Play a card if possible (Rule: 1 per turn)
-    const emptySlots = enemyField.slice(0, 5).map((s, i) => s === null ? i : -1).filter(i => i !== -1);
+    // 1. Play card logic (MORE AGGRESSIVE)
+    const availableSlots = enemyField.slice(0, 5).map((s, i) => s === null ? i : -1).filter(i => i !== -1);
     
-    if (emptySlots.length > 0 && enemyHandCount > 0) {
+    // Regular: play up to 2 cards if board is empty, but Turn 1 only 1
+    let maxToPlay = (availableSlots.length > 3 && turnCount > 2) ? 2 : 1;
+    const cardsToPlay = Math.min(enemyHandCount, availableSlots.length, maxToPlay);
+    
+    for (let p = 0; p < cardsToPlay; p++) {
+      const currentSlot = availableSlots[p];
       const randomIndex = Math.floor(Math.random() * DECK_POOL.length);
       const enemyCardSource = DECK_POOL[randomIndex];
       const newEnemyCard: Card = {
         ...enemyCardSource,
+        canAttack: false, // Summoning Sickness
         id: `enemy-${Date.now()}-${Math.random()}`
       };
 
-      const targetSlot = emptySlots[0];
-      const newEnemyField = [...enemyField];
-      newEnemyField[targetSlot] = newEnemyCard;
-      
-      setEnemyField(newEnemyField);
+      setEnemyField(prev => {
+        const next = [...prev];
+        next[currentSlot] = newEnemyCard;
+        return next;
+      });
       setEnemyHandCount(prev => prev - 1);
       setHistory(prev => [`● Malakor invocou: ${newEnemyCard.name}`, ...prev]);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 800)); // Pequena pausa entre invocações
     }
 
-    // 2. Attack with existing cards (Restriction: First turn no attacks)
+    // 2. Attack logic (Restriction: No turn 1 attacks)
     if (turnCount > 1) { 
       const capableAttackers = enemyField.slice(0, 5).filter((c): c is Card => c !== null);
       for (const attacker of capableAttackers) {
-        // Simple logic: attack first player card, or hero if none
         const playerCardIndex = field.slice(0, 5).findIndex(c => c !== null);
         const target = playerCardIndex !== -1 ? field[playerCardIndex]!.id : 'hero';
         
         await handleOpponentAttack(attacker.id, target);
-        await new Promise(r => setTimeout(r, 800));
       }
     }
 
-    // 3. End Opponent Turn
-    setTimeout(() => {
-        setTurn('player');
-        setTurnCount(prev => prev + 1);
-        setPlayedCardThisTurn(false);
-        setIsTransitioning("SEU TURNO");
-        setHistory(prev => ["● SEU TURNO: Planeje sua estratégia!", ...prev]);
-        drawCard();
-        setTimeout(() => setIsTransitioning(null), 1500);
-    }, 1000);
+    // 3. End Turn (FLUID TRANSITION + RECOVER CARDS)
+    setField(prev => prev.map(c => c ? { ...c, canAttack: true } : null)); 
+    setTurn('player');
+    setTurnCount(prev => prev + 1);
+    setPlayedCardThisTurn(false);
+    setIsTransitioning("SEU TURNO");
+    setHistory(prev => ["● SEU TURNO: Planeje sua estratégia!", ...prev]);
+    drawCard();
+    setTimeout(() => setIsTransitioning(null), 1500);
   };
 
-  const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
-    const attacker = enemyField.find(c => c?.id === attackerId);
-    if (!attacker) return;
+   const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
+    try {
+      const attacker = enemyField.find(c => c?.id === attackerId);
+      if (!attacker) return;
 
-    setAttackingInfo({ id: attackerId, targetType: targetId === 'hero' ? 'hero' : 'card', isOpponent: true });
-    await new Promise(r => setTimeout(r, 350));
+      setAttackingInfo({ id: attackerId, targetId: targetId === 'hero' ? 'hero' : targetId, isOpponent: true });
+      await new Promise(r => setTimeout(r, 400)); // Impacto mais rápido
 
-    if (targetId === 'hero') {
-      setPlayerHp(prev => Math.max(0, prev - attacker.atk));
-      setHistory(prev => [`● PUNCH! ${attacker.name} causou ${attacker.atk} a você!`, ...prev]);
-      if (playerHp - attacker.atk <= 0) setGameStatus('defeat');
-    } else {
-      const target = field.find(c => c?.id === targetId);
-      if (target) {
-        setField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
-        setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
-        setHistory(prev => [`● Defesa! ${attacker.name} atacou sua unidade`, ...prev]);
+      if (targetId === 'hero') {
+        const hasBlockers = field.some(c => c !== null);
+        if (hasBlockers) {
+          // Rule: AI must clear field if there are defenders
+          const defenderIndex = field.findIndex(c => c !== null);
+          const defender = field[defenderIndex]!;
+          
+          await new Promise(r => setTimeout(r, 50)); 
+          // Redirect attack to the first defender
+          setField(prev => prev.map(c => (c?.id === defender.id) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
+          setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - defender.atk <= 0 ? null : { ...c, hp: c.hp - defender.atk, canAttack: false }) : c));
+          if (defender.hp - attacker.atk <= 0) setExile(prev => [...prev, defender]);
+          if (attacker.hp - defender.atk <= 0) setExile(prev => [...prev, attacker]);
+          
+          setHistory(prev => [`● AI REDIRECIONADO: ${attacker.name} atacou sua defesa!`, ...prev]);
+        } else {
+          setPlayerHp(prev => Math.max(0, prev - attacker.atk));
+          setHistory(prev => [`● IMPACTO! ${attacker.name} causou ${attacker.atk} a você!`, ...prev]);
+          if (playerHp - attacker.atk <= 0) setGameStatus('defeat');
+        }
+      } else {
+        const target = field.find(c => c?.id === targetId);
+        if (target) {
+          await new Promise(r => setTimeout(r, 50)); // Dano imediato
+          
+          // Death check (Sync fix)
+          if (target.hp - attacker.atk <= 0) {
+            setExile(prev => [...prev, target]);
+          }
+          if (attacker.hp - target.atk <= 0) {
+            setExile(prev => [...prev, attacker]);
+          }
+
+          setField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
+          setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
+          setHistory(prev => [`● COMBATE! ${attacker.name} vs ${target.name}`, ...prev]);
+        }
       }
+      await new Promise(r => setTimeout(r, 200)); // Retorno rápido
+    } finally {
+      setAttackingInfo(null);
     }
-    setAttackingInfo(null);
   };
 
-  const playCard = (card: Card) => {
-    if (turn !== 'player' || playedCardThisTurn) {
-      if (playedCardThisTurn) setHistory(prev => ["● Limite: 1 combatente por turno!", ...prev]);
-      return;
-    }
-    
-    // Find first empty Combatant slot (0-4)
-    const emptyIndex = field.findIndex((s, i) => s === null && i < 5);
-    if (emptyIndex === -1) {
-      setHistory(prev => ["● Campo de Combatentes cheio!", ...prev]);
+  const playCard = (card: Card, index: number) => {
+    if (turn !== 'player') return;
+    if (playedCardThisTurn) {
+      setHistory(prev => ["● Regra: Max 1 combatente por turno!", ...prev]);
       return;
     }
 
-    setHand(prev => prev.filter(c => c.id !== card.id));
-    setField(prev => {
-      const next = [...prev];
-      next[emptyIndex] = { ...card, canAttack: false };
-      return next;
-    });
-    setPlayedCardThisTurn(true);
-    setHistory(prev => [`● Jogou '${card.name}'`, ...prev]);
-  };
+    if (index === undefined || index < 0 || index > 4) {
+       // Automatic find for simple plays if index not provided
+       const emptyIndex = field.findIndex((s, i) => s === null && i < 5);
+       if (emptyIndex === -1) {
+         setHistory(prev => ["● Campo cheio! Escolha um slot para substituir.", ...prev]);
+         return;
+       }
+       index = emptyIndex;
+    }
 
-  const handleCombat = async (attackerId: string, targetId: string | 'hero', isEnemyHero: boolean = false) => {
-    const attacker = field.find(c => c?.id === attackerId);
-    if (!attacker || !attacker.canAttack || turn !== 'player') return;
-
-    setAttackingInfo({ id: attackerId, targetType: isEnemyHero ? 'hero' : 'card' });
-    await new Promise(resolve => setTimeout(resolve, 350));
-
-    if (isEnemyHero) {
-      if (turnCount === 1) {
-        setHistory(prev => ["● Regra: Sem ataques no primeiro turno!", ...prev]);
-        setSelectedCardId(null);
-        setAttackingInfo(null);
+    const existingCard = field[index];
+    if (existingCard) {
+      const canSubstitute = card.atk > existingCard.atk || card.stars > existingCard.stars;
+      if (canSubstitute) {
+        setHistory(prev => [`● SUBSTITUIÇÃO! ${card.name} substituiu ${existingCard.name}`, ...prev]);
+        setExile(prev => [...prev, existingCard]);
+      } else {
+        setHistory(prev => [`● BLOQUEADO: Sem poder para substituir ${existingCard.name}`, ...prev]);
         return;
       }
-      const newHp = enemyHp - attacker.atk;
-      setEnemyHp(Math.max(0, newHp));
-      if (newHp <= 0) setGameStatus('victory');
-      setHistory(prev => [`● Direct Hit! ${attacker.name} causou ${attacker.atk} ao Herói`, ...prev]);
-      setField(prev => prev.map(c => c?.id === attackerId ? { ...c, canAttack: false } : c));
-    } else {
-      const target = enemyField.find(c => c?.id === targetId);
-      if (target) {
-        setField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
-        setEnemyField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
-        setHistory(prev => [`● Combate: ${attacker.name} vs ${target.name}`, ...prev]);
-      }
     }
 
-    setSelectedCardId(null);
-    setAttackingInfo(null);
+    setField(prev => {
+      const next = [...prev];
+      next[index] = { ...card, canAttack: false };
+      return next;
+    });
+    setHand(prev => prev.filter(c => c.id !== card.id));
+    setPlayedCardThisTurn(true);
+    setSelectedHandCardId(null);
+    setHistory(prev => [`● Jogou '${card.name}' na arena`, ...prev]);
+  };
+
+  const handleCombat = async (attackerId: string, targetId: string | 'hero', targetIndex?: number) => {
+    try {
+      const attacker = field.find(c => c?.id === attackerId);
+      if (turn !== 'player' || !attacker) return;
+      
+      const isHeroAttack = targetId === 'hero';
+
+      // RULE: First Turn Restriction (Only for Starting Player)
+      if (turnCount === 1 && isHeroAttack) {
+        setHistory(prev => ["● Regra: Ataques ao Herói proibidos no Turno 1", ...prev]);
+        return;
+      }
+
+      // RULE: Blockers (Direct Attack only if field is empty)
+      if (isHeroAttack) {
+        const hasBlockers = enemyField.some(c => c !== null);
+        if (hasBlockers) {
+          setHistory(prev => ["● BLOQUEIO: Limpe os combatentes antes de atacar o Herói!", ...prev]);
+          return;
+        }
+      }
+
+      // Calculate attack direction (x offset) based on slot positions
+      let xOffset = 0;
+      if (targetIndex !== undefined) {
+        const attackerIndex = field.findIndex(c => c?.id === attackerId);
+        xOffset = (targetIndex - attackerIndex) * 40; 
+      }
+
+      setAttackingInfo({ 
+        id: attackerId, 
+        targetId: targetId, 
+        isOpponent: false,
+        xOffset: xOffset 
+      });
+      await new Promise(resolve => setTimeout(resolve, 400)); 
+
+      if (isHeroAttack) {
+        const newHp = enemyHp - attacker.atk;
+        setEnemyHp(Math.max(0, newHp));
+        if (newHp <= 0) setGameStatus('victory');
+        setHistory(prev => [`● IMPACTO DIRETO! ${attacker.name} causou ${attacker.atk} ao Herói`, ...prev]);
+        setField(prev => prev.map(c => c?.id === attackerId ? { ...c, canAttack: false } : c));
+      } else {
+        const target = enemyField.find(c => c?.id === targetId);
+        if (target) {
+          await new Promise(resolve => setTimeout(resolve, 50)); 
+          
+          // Death check
+          if (target.hp - attacker.atk <= 0) {
+            setExile(prev => [...prev, target]);
+          }
+          if (attacker.hp - target.atk <= 0) {
+            setExile(prev => [...prev, attacker]);
+          }
+
+          setField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
+          setEnemyField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
+          setHistory(prev => [`● COMBATE: ${attacker.name} vs ${target.name}`, ...prev]);
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 200));
+    } finally {
+      setSelectedCardId(null);
+      setAttackingInfo(null);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col font-display text-white">
+    <div 
+      className={`fixed inset-0 z-50 bg-black flex flex-col font-display text-white transition-all`}
+      style={{ 
+        cursor: selectedCardId 
+          ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` 
+          : 'default' 
+      }}
+    >
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center"
@@ -375,7 +479,15 @@ export default function Arena({ onClose }: ArenaProps) {
       <div className={`relative z-10 w-full h-full flex flex-col p-4 transition-opacity duration-1000 ${gameStatus !== 'playing' ? 'opacity-20 blur-sm' : 'opacity-100'}`}>
         
         {/* Enemy HUD (Top Left) */}
-        <div className="fixed top-6 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border border-red-500/20 transition-all z-50">
+        <div 
+          onClick={() => {
+            if (selectedCardId) {
+              handleCombat(selectedCardId, 'hero');
+            }
+          }}
+          className={`fixed top-6 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border transition-all z-50 ${selectedCardId ? 'ring-2 ring-red-500 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] scale-105' : 'border-red-500/20'}`}
+          style={{ cursor: selectedCardId ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
+        >
            <div className="w-10 h-10 rounded-xl border border-red-500/30 p-0.5 overflow-hidden bg-black shadow-[0_0_15px_rgba(239,68,68,0.1)]">
               <img src="/enemy_avatar.png" className="w-full h-full object-cover rounded-lg grayscale hover:grayscale-0 transition-all" />
            </div>
@@ -416,8 +528,22 @@ export default function Arena({ onClose }: ArenaProps) {
         {/* BOARD AREA: BATTLEFIELD & SIDEBAR */}
         <div className="flex-1 flex gap-10 items-center justify-center relative" onClick={() => setActiveActionMenu(null)}>
           
-          {/* LEFT SIDEBAR (BAN AREA) */}
-          <div className="w-32 flex items-center justify-center">
+          {/* LEFT SIDEBAR (BUTTON & BAN AREA) */}
+          <div className="w-56 flex items-center justify-center gap-6">
+            {/* COMPACT END TURN BUTTON (Now First) */}
+            <button 
+                onClick={endTurn}
+                disabled={turn !== 'player'}
+                className={`group relative overflow-hidden px-2 py-4 rounded-lg font-black text-[7px] transition-all uppercase tracking-[0.1em] w-20 h-24 shadow-xl border flex flex-col items-center justify-center gap-1
+                  ${turn === 'player' 
+                    ? 'bg-emerald-600/90 border-emerald-400/40 text-white hover:bg-emerald-500 active:scale-95' 
+                    : 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed'}`}
+               >
+                  <RefreshCw className={`w-4 h-4 ${turn === 'player' ? 'animate-spin-slow' : ''}`} />
+                  <span className="text-center leading-tight">Finalizar<br/>Turno</span>
+            </button>
+
+            {/* BAN SLOT */}
             <div className="flex flex-col items-center gap-1 group">
               <div className="w-22 h-30 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all group-hover:border-red-500/40">
                  <div className="text-xl font-black text-white/40 group-hover:text-white/60 transition-colors uppercase">BAN</div>
@@ -454,29 +580,73 @@ export default function Arena({ onClose }: ArenaProps) {
               <div className="flex gap-2 justify-center">
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={`enemy-combatant-${i}`} className="w-24 h-32 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center relative">
-                    {enemyField[i] ? (
-                      <motion.div 
-                        layoutId={enemyField[i]?.id}
-                        initial={{ opacity: 0, scale: 0.3, x: 500, y: -500, rotate: -45 }}
-                        animate={{ opacity: 1, scale: 1, x: 0, y: 0, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 120, damping: 20 }}
-                        className="w-full h-full relative p-0 bg-cover bg-center rounded-xl overflow-hidden shadow-2xl" 
-                        style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
-                      >
-                         <div className="absolute inset-0 bg-black/10" />
+                    <AnimatePresence mode="popLayout">
+                      {enemyField[i] && (
+                        <motion.div 
+                          key={enemyField[i]?.id}
+                          layoutId={enemyField[i]?.id}
+                          initial={{ opacity: 0, scale: 0.2, x: (2 - i) * 105, y: -600, rotate: 0 }}
+                          animate={{ 
+                            opacity: 1, 
+                            scale: 1, 
+                            x: 0, 
+                            y: (attackingInfo?.id === enemyField[i]?.id) ? 100 : 0, // BUMP DOWN when attacking
+                            rotate: 0,
+                            filter: (attackingInfo?.targetId === enemyField[i]?.id) ? "brightness(2) saturate(2) hue-rotate(-50deg)" : "brightness(1)",
+                          }}
+                          exit={{ 
+                            opacity: 0, 
+                            scale: 1.2, 
+                            rotate: 45, 
+                            filter: "brightness(4) contrast(2) blur(15px) saturate(0)",
+                            transition: { duration: 0.6, ease: "circIn" } 
+                          }}
+                          transition={{ type: "spring", stiffness: 150, damping: 15, x: { type: "tween", duration: 0.2 } }}
+                          className="w-full h-full relative p-0 bg-cover bg-center rounded-xl overflow-hidden shadow-2xl" 
+                          style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
+                        >
+                           <div className="absolute inset-0 bg-black/10" />
+                           
+                           {/* SMALL SLEEPING BADGE */}
+                           {!enemyField[i]?.canAttack && (
+                             <motion.div 
+                               initial={{ opacity: 0, x: 10 }}
+                               animate={{ opacity: 1, x: 0, y: [0, -4, 0] }}
+                               transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
+                               className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-indigo-950/80 backdrop-blur-md border border-indigo-400/30 px-1.5 py-0.5 rounded-full shadow-lg"
+                             >
+                                <Moon className="w-3 h-3 text-indigo-300" />
+                                <span className="text-[7px] font-black text-indigo-200 tracking-tighter">ZzZ</span>
+                             </motion.div>
+                           )}
+
+                           {/* ATTACK INDICATOR */}
+                           {attackingInfo?.id === enemyField[i]?.id && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-red-600/20 animate-pulse">
+                               <Sword className="text-white w-12 h-12 rotate-45 drop-shadow-2xl" />
+                             </div>
+                           )}
                          {/* Stats Overlay */}
                          <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
                             <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{enemyField[i]?.atk}</span>
                             <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{enemyField[i]?.hp}</span>
                          </div>
-                         {/* Hover info or something if needed */}
                          <button 
                             onContextMenu={(e) => enemyField[i] && handleInspect(e, enemyField[i]!)}
-                            onClick={() => enemyField[i] && setInspectedCard(enemyField[i]!)}
-                            className="absolute inset-0 z-10 opacity-0 bg-white/5 hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              if (selectedCardId && enemyField[i]) {
+                                 handleCombat(selectedCardId, enemyField[i]!.id, i);
+                              } else if (enemyField[i]) {
+                                 setInspectedCard(enemyField[i]!);
+                              }
+                            }}
+                            className={`absolute inset-0 z-30 transition-all ${selectedCardId && enemyField[i] ? 'ring-4 ring-red-500 shadow-[0_0_20px_rgba(239,68,68,0.8)] bg-red-500/20' : 'bg-white/5 opacity-0 hover:opacity-100'}`}
+                            style={{ cursor: (selectedCardId && enemyField[i]) ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
                          />
                       </motion.div>
-                    ) : (
+                    )}
+                    </AnimatePresence>
+                    {!enemyField[i] && (
                       <span className="text-white/30 font-black text-[8px] uppercase font-serif">Combatentes</span>
                     )}
                   </div>
@@ -497,18 +667,26 @@ export default function Arena({ onClose }: ArenaProps) {
               {/* PLAYER ROW 1: COMBATENTES (Index 0-4) */}
               <div className="flex gap-2 justify-center">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={`player-combatant-${i}`} className="relative">
-                    <div className={`w-24 h-32 rounded-xl border-2 border-dashed transition-all duration-500 ${selectedCardId && field[i] && selectedCardId === field[i]?.id ? 'border-gold bg-gold/5' : (selectedCardId && !field[i] ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10 bg-black/20')} flex items-center justify-center relative`}>
+                  <div key={`player-combatant-${i}`} className="relative z-50">
+                    <div 
+                      className={`w-28 h-40 rounded-xl border-2 border-dashed transition-all duration-500 flex items-center justify-center relative pointer-events-auto ${selectedHandCardId ? 'border-amber-400 bg-amber-400/10 cursor-pointer shadow-[0_0_20px_rgba(251,191,36,0.3)]' : (selectedCardId && field[i] && selectedCardId === field[i]?.id ? 'border-gold bg-gold/5' : 'border-white/10 bg-black/20')}`}
+                      onClick={(e) => {
+                         if (selectedHandCardId) {
+                           const card = hand.find(c => c.id === selectedHandCardId);
+                           if (card) playCard(card, i);
+                         }
+                      }}
+                    >
                       {field[i] ? (
                         <>
                           {/* Floating Action Menu (ABOVE THE CARD) */}
                           <AnimatePresence>
                             {activeActionMenu?.index === i && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                                animate={{ opacity: 1, y: -8, scale: 1 }}
-                                exit={{ opacity: 0, y: 0, scale: 0.5 }}
-                                className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]"
+                               <motion.div 
+                                 initial={{ opacity: 0, scale: 0.5 }}
+                                 animate={{ opacity: 1, y: -8, scale: 1 }}
+                                 exit={{ opacity: 0, scale: 0.5 }}
+                                 className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                     <button 
@@ -550,25 +728,68 @@ export default function Arena({ onClose }: ArenaProps) {
                             )}
                           </AnimatePresence>
 
-                          <motion.div
-                            layoutId={field[i]?.id}
-                            onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
-                            className={`w-full h-full rounded-xl overflow-hidden shadow-xl cursor-pointer ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (field[i]) {
-                                setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i });
-                              }
-                            }}
-                          >
-                             <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
-                                 <div className="absolute inset-0 bg-black/10" />
-                                 <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                                    <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{field[i]?.atk}</span>
-                                    <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{field[i]?.hp}</span>
-                                 </div>
-                              </div>
-                          </motion.div>
+                          <AnimatePresence mode="popLayout">
+                            {field[i] && (
+                              <motion.div
+                                key={field[i]?.id}
+                                layoutId={field[i]?.id}
+                                animate={{ 
+                                  y: (attackingInfo?.id === field[i]?.id) ? -120 : 0,
+                                  x: (attackingInfo?.id === field[i]?.id) ? (attackingInfo as any).xOffset || 0 : ((attackingInfo?.targetId === field[i]?.id) ? [0, -5, 5, -5, 5, 0] : 0),
+                                  filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)",
+                                }}
+                                exit={{ 
+                                  scale: 1.2, 
+                                  opacity: 0, 
+                                  rotate: -45,
+                                  filter: "brightness(4) contrast(2) blur(15px) saturate(0)",
+                                  transition: { duration: 0.6, ease: "circIn" }
+                                }}
+                                transition={{ 
+                                  type: "spring", stiffness: 150, damping: 15,
+                                  x: { type: "tween", duration: 0.2 }
+                                }}
+                                onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
+                                className={`w-full h-full rounded-xl overflow-hidden shadow-xl cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''} ${!field[i]?.canAttack ? 'brightness-90' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (selectedHandCardId) {
+                                    const card = hand.find(c => c.id === selectedHandCardId);
+                                    if (card) playCard(card, i);
+                                  } else if (field[i]) {
+                                    setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i });
+                                  }
+                                }}
+                              >
+                                 <div className="relative w-full h-full bg-cover bg-center" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
+                                     <div className="absolute inset-0 bg-black/10" />
+                                     
+                                     {/* SMALL SLEEPING BADGE */}
+                                     {!field[i]?.canAttack && (
+                                       <motion.div 
+                                         initial={{ opacity: 0, x: 10 }}
+                                         animate={{ opacity: 1, x: 0, y: [0, -4, 0] }}
+                                         transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
+                                         className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-indigo-950/80 backdrop-blur-md border border-indigo-400/30 px-1.5 py-0.5 rounded-full shadow-lg"
+                                       >
+                                          <Moon className="w-2.5 h-2.5 text-indigo-300" />
+                                          <span className="text-[7px] font-black text-indigo-200 tracking-tighter">ZzZ</span>
+                                       </motion.div>
+                                     )}
+
+                                     {attackingInfo?.id === field[i]?.id && (
+                                       <div className="absolute inset-0 flex items-center justify-center bg-amber-500/20 animate-pulse">
+                                         <Sword className="text-white w-12 h-12 -rotate-45 drop-shadow-2xl" />
+                                       </div>
+                                     )}
+                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                                        <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{field[i]?.atk}</span>
+                                        <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{field[i]?.hp}</span>
+                                     </div>
+                                  </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </>
                       ) : (
                         <span className="text-white/20 font-black text-[8px] uppercase font-serif">Combatentes</span>
@@ -607,54 +828,57 @@ export default function Arena({ onClose }: ArenaProps) {
             </div>
           </div>
 
-          {/* RIGHT SIDEBAR (Fixed column) */}
-          <div className="w-32 flex flex-col gap-4 items-center h-[70vh] justify-center pb-10">
-            {/* EXÍLIO */}
-            <div className="flex flex-col items-center gap-1 group">
-              <div className="w-22 h-30 rounded-xl border-2 border-white/5 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all group-hover:border-white/20">
-                 <div className="text-lg font-black text-white/40 group-hover:text-white/60 transition-colors uppercase leading-tight italic text-center px-2 font-serif">Exílio</div>
-                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/20 to-transparent" />
+           {/* RIGHT SIDEBAR (Fixed column) */}
+           <div className="w-32 flex flex-col gap-10 items-center h-[70vh] justify-center pb-10">
+             {/* EXÍLIO */}
+             <div className="w-full h-44 rounded-xl border-4 border-white/5 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden group">
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Exílio</span>
+                 <div className="relative w-20 h-28 transform group-hover:scale-105 transition-transform">
+                   {exile.length > 0 ? (
+                     <motion.div 
+                        layoutId={exile[exile.length - 1].id}
+                        className="w-full h-full rounded-lg bg-cover bg-center border border-white/20 shadow-2xl relative overflow-hidden"
+                        style={{ backgroundImage: `url("${exile[exile.length - 1].image}")` }}
+                     >
+                        <div className="absolute inset-0 bg-black/40" />
+                        <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/60 rounded text-[8px] font-black text-white/60">
+                          {exile.length}
+                        </div>
+                     </motion.div>
+                   ) : (
+                     <div className="w-full h-full border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center">
+                        <Skull className="w-8 h-8 text-white/5" />
+                     </div>
+                   )}
+                 </div>
               </div>
-            </div>
 
-            {/* DECK (Bottom) */}
-            <div className="flex flex-col items-center gap-2 group">
-              <motion.div 
-                layoutId="game-deck"
-                className="relative w-22 h-30 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:border-white/40 cursor-pointer"
-                style={{ backgroundImage: 'url("/fundo.png")' }}
-              >
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-              </motion.div>
-              {/* Deck Label & Count (BELOW) */}
-              <div className="flex flex-col items-center leading-none">
-                 <span className="text-[10px] font-black text-white/40 uppercase tracking-widest font-serif">Deck</span>
-                 <span className="text-sm font-mono text-white/80 font-black">{deck.length}</span>
-              </div>
-            </div>
-            
-            {/* END TURN */}
-            <div className="mt-4 w-full">
-               <button 
-                onClick={endTurn}
-                disabled={turn !== 'player'}
-                className={`group relative overflow-hidden px-4 py-4 rounded-xl font-black text-[9px] transition-all uppercase tracking-[0.2em] w-full shadow-lg border
-                  ${turn === 'player' 
-                    ? 'bg-emerald-600 border-emerald-400/40 text-gold hover:bg-emerald-500 active:scale-95' 
-                    : 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed'}`}
+             {/* DECK (Bottom) */}
+             <div className="flex flex-col items-center gap-2 group">
+               <motion.div 
+                 layoutId="game-deck"
+                 className="relative w-22 h-30 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:border-white/40 cursor-pointer"
+                 style={{ backgroundImage: 'url("/fundo.png")' }}
                >
-                 {turn === 'player' ? 'Finalizar Turno' : 'Aguarde'}
-               </button>
-            </div>
-          </div>
+                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+               </motion.div>
+               {/* Deck Label & Count (BELOW) */}
+               <div className="flex flex-col items-center leading-none">
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-widest font-serif">Deck</span>
+                  <span className="text-sm font-mono text-white/80 font-black">{deck.length}</span>
+               </div>
+             </div>
+           </div>
         </div>
 
         {/* HUD Player */}
         <div className="w-full flex justify-between items-end gap-12 mt-auto px-10 pb-6 pointer-events-none">
             {/* Player Info (Fixed Bottom Left) */}
             <div 
-              onClick={() => selectedCardId && handleCombat(selectedCardId, 'hero', true)}
-              className="pointer-events-auto flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/5 transition-all cursor-pointer mb-2"
+              onClick={() => selectedCardId && handleCombat(selectedCardId, 'hero')}
+              className={`pointer-events-auto flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border transition-all mb-2 ${selectedCardId ? 'ring-2 ring-red-500 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)] scale-105' : 'border-white/5'}`}
+              style={{ cursor: selectedCardId ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
             >
                <div className="w-10 h-10 rounded-xl border border-gold/30 p-0.5 overflow-hidden bg-black">
                   <img src="/hero_avatar.png" className="w-full h-full object-cover rounded-lg" />
@@ -683,12 +907,24 @@ export default function Arena({ onClose }: ArenaProps) {
                         initial="initial"
                         exit={{ opacity: 0, scale: 0.5, y: -200 }}
                         onContextMenu={(e) => handleInspect(e, card)}
-                        onClick={() => playCard(card)}
-                        className="relative w-18 h-26 cursor-pointer flex items-end"
+                        onClick={() => {
+                          if (selectedHandCardId === card.id) {
+                             setSelectedHandCardId(null);
+                          } else {
+                             setSelectedHandCardId(card.id);
+                             setSelectedCardId(null);
+                          }
+                        }}
+                        className={`relative w-28 h-40 cursor-pointer flex items-end -ml-8 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-8 scale-110 z-50' : 'hover:-translate-y-2'}`}
                       >
-                        <motion.div
-                          variants={{
-                            initial: { opacity: 0, scale: 0.5, x: 800, y: -300, rotate: 45 },
+                         {/* SELECTION GLOW */}
+                         {selectedHandCardId === card.id && (
+                           <div className="absolute -inset-2 bg-amber-500/20 blur-xl rounded-full animate-pulse z-0" />
+                         )}
+                         
+                         <motion.div
+                           variants={{
+                             initial: { opacity: 0, scale: 0.5, x: 800, y: -300, rotate: 45 },
                             animate: { 
                               opacity: 1, 
                               scale: 1, 
