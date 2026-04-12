@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon } from 'lucide-react';
+import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon, Ghost } from 'lucide-react';
 
 interface Card {
   id: string;
@@ -555,9 +555,9 @@ export default function Arena({ onClose }: ArenaProps) {
             {/* ENEMY SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
               {/* ENEMY ROW 1: BAN, REAÇÕES & BENÇÃO (Topo/Fundo) */}
-              <div className="flex gap-2 items-center">
-                 {/* BAN DO OPONENTE (Agora no Topo Esquerda) */}
-                 <div className="w-28 h-40 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-red-500/40 mr-4 group">
+              <div className="flex gap-2 justify-center items-center">
+                 {/* BAN DO OPONENTE */}
+                 <div className="w-28 h-40 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-red-500/40 group">
                      <div className="text-[10px] font-black text-white/20 group-hover:text-white/40 transition-colors uppercase text-center leading-tight tracking-widest">BAN<br/>Inimigo</div>
                      <div className="absolute inset-0 bg-gradient-to-t from-red-900/10 to-transparent" />
                  </div>
@@ -565,24 +565,23 @@ export default function Arena({ onClose }: ArenaProps) {
                  {/* Reações (Index 6-8) */}
                  <div className="flex gap-2">
                    {[6, 7, 8].map((i) => (
-                     <div key={`enemy-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-red-500/5 bg-red-500/5 flex items-center justify-center">
-                        <span className="text-white/40 font-black text-[6px] uppercase tracking-widest">Reações</span>
+                     <div key={`enemy-reaction-${i}`} className="w-28 h-40 rounded-xl border-dashed border-2 border-red-500/5 bg-red-500/5 flex items-center justify-center">
+                        <span className="text-white/40 font-black text-[8px] uppercase tracking-widest">Reações</span>
                      </div>
                    ))}
                  </div>
-                 
-                 <div className="flex-1" />
 
                  {/* Benção Oponente */}
                  <div className="w-28 h-40 rounded-xl border-dashed border-2 border-red-500/10 bg-red-500/5 flex items-center justify-center flex-shrink-0">
                     <span className="text-white/40 font-black text-xs uppercase tracking-widest leading-none">Benção</span>
                  </div>
+                 
+                 {/* Espaço para alinhamento com Exilio abaixo */}
+                 <div className="w-28 h-40 invisible" />
               </div>
 
               {/* ENEMY ROW 2: COMBATENTES & EXILIO (Perto da Linha) */}
               <div className="flex gap-2 justify-center items-center">
-                {/* Espaço invisível para alinhamento com BAN acima */}
-                <div className="w-28 h-40 invisible mr-4" />
 
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={`enemy-combatant-${i}`} className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center relative">
@@ -618,7 +617,7 @@ export default function Arena({ onClose }: ArenaProps) {
                 {/* ENEMY EXILIO */}
                 <div 
                   onClick={() => enemyExile.length > 0 && setIsViewingExile('enemy')}
-                  className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/10 bg-red-500/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-red-500/30 transition-all ml-4"
+                  className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/10 bg-red-500/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-red-500/30 transition-all font-serif"
                 >
                   {enemyExile.length > 0 ? (
                     <div className="w-full h-full bg-contain bg-center bg-no-repeat grayscale opacity-40" style={{ backgroundImage: `url("${enemyExile[enemyExile.length-1].image}")` }} />
@@ -641,24 +640,8 @@ export default function Arena({ onClose }: ArenaProps) {
 
             {/* PLAYER SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
-              {/* PLAYER ROW 1: EXILIO & COMBATENTES & BAN OPONENTE */}
+              {/* PLAYER ROW 1: COMBATENTES & EXILIO */}
               <div className="flex gap-2 justify-center items-center">
-                {/* PLAYER EXILIO (ESQUERDA) */}
-                <div 
-                  onClick={() => playerExile.length > 0 && setIsViewingExile('player')}
-                  className="w-28 h-40 rounded-xl border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-white/20 transition-all mr-4"
-                >
-                  {playerExile.length > 0 ? (
-                    <div className="w-full h-full bg-contain bg-center bg-no-repeat grayscale opacity-40" style={{ backgroundImage: `url("${playerExile[playerExile.length-1].image}")` }} />
-                  ) : (
-                    <History className="w-8 h-8 text-white/5" />
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
-                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Seu Exílio</span>
-                     {playerExile.length > 0 && <span className="text-sm font-mono text-white/40 font-black">{playerExile.length}</span>}
-                  </div>
-                </div>
-
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={`player-combatant-${i}`} className="relative z-50">
                     <div 
@@ -672,7 +655,7 @@ export default function Arena({ onClose }: ArenaProps) {
                     >
                       {field[i] ? (
                         <>
-                           {/* Action Menu Loop... (Condensed for replacement) */}
+                           {/* Action Menu Loop... */}
                            <AnimatePresence>
                              {activeActionMenu?.index === i && (
                                 <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, y: -8, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]" onClick={(e) => e.stopPropagation()}>
@@ -698,14 +681,27 @@ export default function Arena({ onClose }: ArenaProps) {
                   </div>
                 ))}
 
-                {/* Espaço Vazio para Alinhamento (Removido BAN lateral da Benção) */}
-                <div className="w-28 h-40 invisible ml-4" />
+                {/* PLAYER EXILIO (AGORA NA DIREITA) */}
+                <div 
+                  onClick={() => playerExile.length > 0 && setIsViewingExile('player')}
+                  className="w-28 h-40 rounded-xl border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-white/20 transition-all font-serif"
+                >
+                  {playerExile.length > 0 ? (
+                    <div className="w-full h-full bg-contain bg-center bg-no-repeat grayscale opacity-40" style={{ backgroundImage: `url("${playerExile[playerExile.length-1].image}")` }} />
+                  ) : (
+                    <History className="w-8 h-8 text-white/5" />
+                  )}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Seu Exílio</span>
+                     {playerExile.length > 0 && <span className="text-sm font-mono text-white/40 font-black">{playerExile.length}</span>}
+                  </div>
+                </div>
               </div>
 
-              {/* PLAYER ROW 2: BAN JOGADOR & REAÇÕES & BENÇÃO */}
-              <div className="flex gap-2">
-                 {/* BAN DO JOGADOR (Abaixo do Exílio Jogador) */}
-                 <div className="w-28 h-40 rounded-xl border-2 border-gold/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-gold/40 mr-4 group">
+              {/* PLAYER ROW 2: BAN JOGADOR & REAÇÕES & BENÇÃO (TODOS ALINHADOS) */}
+              <div className="flex gap-2 justify-center items-center">
+                 {/* BAN DO JOGADOR */}
+                 <div className="w-28 h-40 rounded-xl border-2 border-gold/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-gold/40 group">
                      <div className="text-[10px] font-black text-white/20 group-hover:text-white/40 transition-colors uppercase text-center leading-tight tracking-widest">Seu<br/>BAN</div>
                      <div className="absolute inset-0 bg-gradient-to-t from-gold/10 to-transparent" />
                  </div>
@@ -713,19 +709,17 @@ export default function Arena({ onClose }: ArenaProps) {
                  {/* Reações (Index 6-8) */}
                  <div className="flex gap-2">
                    {[6, 7, 8].map((i) => (
-                     <div key={`player-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-emerald-500/10 bg-emerald-500/5 flex items-center justify-center transition-all hover:bg-emerald-500/10 hover:border-emerald-500/30 cursor-pointer">
+                     <div key={`player-reaction-${i}`} className="w-28 h-40 rounded-xl border-dashed border-2 border-emerald-500/10 bg-emerald-500/5 flex items-center justify-center transition-all hover:bg-emerald-500/10 hover:border-emerald-500/30 cursor-pointer">
                        {field[i] ? (
                          <div className="w-full h-full rounded-xl bg-contain bg-center bg-no-repeat opacity-80" style={{ backgroundImage: `url("${field[i]!.image}")` }} />
                        ) : (
-                         <span className="text-white/30 font-black text-[6px] uppercase tracking-widest">Reações</span>
+                         <span className="text-white/30 font-black text-[8px] uppercase tracking-widest">Reações</span>
                        )}
                      </div>
                    ))}
                  </div>
 
-                 <div className="flex-1" />
-
-                 {/* Benção (Index 5 - Extrema Direita) */}
+                 {/* Benção (Index 5) */}
                  <div className="w-28 h-40 rounded-xl border-dashed border-2 border-gold/10 bg-gold/5 flex items-center justify-center transition-all hover:bg-gold/10 hover:border-gold/30 cursor-pointer flex-shrink-0">
                     {field[5] ? (
                       <div className="w-full h-full rounded-xl bg-contain bg-center bg-no-repeat opacity-80" style={{ backgroundImage: `url("${field[5].image}")` }} />
@@ -733,6 +727,9 @@ export default function Arena({ onClose }: ArenaProps) {
                       <span className="text-white/50 font-black text-xs uppercase tracking-widest leading-none">Benção</span>
                     )}
                  </div>
+
+                 {/* Espaço invisível para alinhamento com Exílio acima */}
+                 <div className="w-28 h-40 invisible" />
               </div>
             </div>
           </div>
