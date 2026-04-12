@@ -553,7 +553,7 @@ export default function Arena({ onClose }: ArenaProps) {
           </div>
 
           {/* BATTLEFIELD (4 ROWS TOTAL) */}
-          <div className="flex flex-col gap-6 max-w-[85%] mt-16">
+          <div className="flex flex-col gap-4 max-w-[85%] mt-4">
             
             {/* ENEMY SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
@@ -895,7 +895,7 @@ export default function Arena({ onClose }: ArenaProps) {
             </div>
 
             {/* Hand (Pinned to Bottom Right - Fixed) */}
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
                 <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em]">Sua Mão</span>
                 <div className="flex justify-center -space-x-8">
                   <AnimatePresence>
@@ -915,7 +915,7 @@ export default function Arena({ onClose }: ArenaProps) {
                              setSelectedCardId(null);
                           }
                         }}
-                        className={`relative w-28 h-40 cursor-pointer flex items-end -ml-8 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-8 scale-110 z-50' : 'hover:-translate-y-2'}`}
+                        className={`relative w-24 h-34 cursor-pointer flex items-end -ml-8 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-6 scale-110 z-50' : 'hover:-translate-y-2'}`}
                       >
                          {/* SELECTION GLOW */}
                          {selectedHandCardId === card.id && (
