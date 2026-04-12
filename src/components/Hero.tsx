@@ -9,7 +9,7 @@ export default function Hero() {
         <img 
           src="/rpg_landing_background_1775958332750.png" 
           alt="RPG Background" 
-          className="w-full h-full object-cover scale-105"
+          className="w-full h-full object-cover object-top transition-all duration-700"
           draggable="false"
         />
         {/* Darker overlays for much better text readability */}
