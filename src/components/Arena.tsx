@@ -124,7 +124,8 @@ export default function Arena({ onClose }: ArenaProps) {
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [inspectedCard, setInspectedCard] = useState<Card | null>(null);
   const [activeActionMenu, setActiveActionMenu] = useState<{ card: Card, index: number } | null>(null);
-  const [exile, setExile] = useState<Card[]>([]);
+  const [playerExile, setPlayerExile] = useState<Card[]>([]);
+  const [enemyExile, setEnemyExile] = useState<Card[]>([]);
   const [attackingInfo, setAttackingInfo] = useState<{ id: string, targetId: string, isOpponent?: boolean, xOffset?: number } | null>(null);
   
   const [history, setHistory] = useState<string[]>([
@@ -133,7 +134,7 @@ export default function Arena({ onClose }: ArenaProps) {
   ]);
 
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
-  const [isViewingExile, setIsViewingExile] = useState(false);
+  const [isViewingExile, setIsViewingExile] = useState<null | 'player' | 'enemy'>(null);
 
   const drawCard = () => {
     if (deck.length > 0) {
@@ -159,8 +160,7 @@ export default function Arena({ onClose }: ArenaProps) {
     setGameStatus('playing');
     setHistory(["● BLOCO DE NOTAS LIMPO", "● PARTIDA REINICIADA"]);
     setSelectedCardId(null);
-    setInspectedCard(null);
-    setExile([]);
+    setIsViewingExile(null);
   };
 
   const handleInspect = (e: React.MouseEvent, card: Card) => {
@@ -259,8 +259,8 @@ export default function Arena({ onClose }: ArenaProps) {
           // Redirect attack to the first defender
           setField(prev => prev.map(c => (c?.id === defender.id) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
           setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - defender.atk <= 0 ? null : { ...c, hp: c.hp - defender.atk, canAttack: false }) : c));
-          if (defender.hp - attacker.atk <= 0) setExile(prev => [...prev, defender]);
-          if (attacker.hp - defender.atk <= 0) setExile(prev => [...prev, attacker]);
+          if (defender.hp - attacker.atk <= 0) setPlayerExile(prev => [...prev, defender]);
+          if (attacker.hp - defender.atk <= 0) setEnemyExile(prev => [...prev, attacker]);
           
           setHistory(prev => [`● AI REDIRECIONADO: ${attacker.name} atacou sua defesa!`, ...prev]);
         } else {
@@ -275,10 +275,10 @@ export default function Arena({ onClose }: ArenaProps) {
           
           // Death check (Sync fix)
           if (target.hp - attacker.atk <= 0) {
-            setExile(prev => [...prev, target]);
+            setPlayerExile(prev => [...prev, target]);
           }
           if (attacker.hp - target.atk <= 0) {
-            setExile(prev => [...prev, attacker]);
+            setEnemyExile(prev => [...prev, attacker]);
           }
 
           setField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
@@ -314,7 +314,7 @@ export default function Arena({ onClose }: ArenaProps) {
       const canSubstitute = card.atk > existingCard.atk || card.stars > existingCard.stars;
       if (canSubstitute) {
         setHistory(prev => [`● SUBSTITUIÇÃO! ${card.name} substituiu ${existingCard.name}`, ...prev]);
-        setExile(prev => [...prev, existingCard]);
+        setPlayerExile(prev => [...prev, existingCard]);
       } else {
         setHistory(prev => [`● BLOQUEADO: Sem poder para substituir ${existingCard.name}`, ...prev]);
         return;
@@ -382,10 +382,12 @@ export default function Arena({ onClose }: ArenaProps) {
           
           // Death check
           if (target.hp - attacker.atk <= 0) {
-            setExile(prev => [...prev, target]);
+            if (turn === 'player') setEnemyExile(prev => [...prev, target]);
+            else setPlayerExile(prev => [...prev, target]);
           }
           if (attacker.hp - target.atk <= 0) {
-            setExile(prev => [...prev, attacker]);
+            if (turn === 'player') setPlayerExile(prev => [...prev, attacker]);
+            else setEnemyExile(prev => [...prev, attacker]);
           }
 
           setField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
@@ -531,9 +533,9 @@ export default function Arena({ onClose }: ArenaProps) {
         {/* BOARD AREA: BATTLEFIELD & SIDEBAR */}
         <div className="flex-1 flex gap-10 items-start justify-center relative pt-2" onClick={() => setActiveActionMenu(null)}>
           
-          {/* LEFT SIDEBAR (BUTTON & BAN AREA) */}
-          <div className="w-56 flex items-center justify-center gap-6 self-center">
-            {/* COMPACT END TURN BUTTON (Now First) */}
+          {/* LEFT SIDEBAR (HUD) */}
+          <div className="w-40 flex flex-col items-center justify-center gap-6 self-center">
+            {/* COMPACT END TURN BUTTON */}
             <button 
                 onClick={endTurn}
                 disabled={turn !== 'player'}
@@ -545,14 +547,6 @@ export default function Arena({ onClose }: ArenaProps) {
                   <RefreshCw className={`w-4 h-4 ${turn === 'player' ? 'animate-spin-slow' : ''}`} />
                   <span className="text-center leading-tight">Finalizar<br/>Turno</span>
             </button>
-
-            {/* BAN SLOT */}
-            <div className="flex flex-col items-center gap-1 group">
-              <div className="w-22 h-30 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all group-hover:border-red-500/40">
-                 <div className="text-xl font-black text-white/40 group-hover:text-white/60 transition-colors uppercase">BAN</div>
-                 <div className="absolute inset-0 bg-gradient-to-t from-red-900/10 to-transparent" />
-              </div>
-            </div>
           </div>
 
           {/* BATTLEFIELD (4 ROWS TOTAL) */}
@@ -560,27 +554,36 @@ export default function Arena({ onClose }: ArenaProps) {
             
             {/* ENEMY SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
-              {/* ENEMY ROW 2: REAÇÕES & BENÇÃO (REAÇÕES ESQUERDA, BENÇÃO DIREITA) */}
-              <div className="flex gap-2">
+              {/* ENEMY ROW 1: BAN, REAÇÕES & BENÇÃO (Topo/Fundo) */}
+              <div className="flex gap-2 items-center">
+                 {/* BAN DO OPONENTE (Agora no Topo Esquerda) */}
+                 <div className="w-28 h-40 rounded-xl border-2 border-red-500/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-red-500/40 mr-4 group">
+                     <div className="text-[10px] font-black text-white/20 group-hover:text-white/40 transition-colors uppercase text-center leading-tight tracking-widest">BAN<br/>Inimigo</div>
+                     <div className="absolute inset-0 bg-gradient-to-t from-red-900/10 to-transparent" />
+                 </div>
+
                  {/* Reações (Index 6-8) */}
-                 <div className="flex gap-2 justify-start">
+                 <div className="flex gap-2">
                    {[6, 7, 8].map((i) => (
                      <div key={`enemy-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-red-500/5 bg-red-500/5 flex items-center justify-center">
-                       <span className="text-white/40 font-black text-[6px] uppercase tracking-widest">Reações</span>
+                        <span className="text-white/40 font-black text-[6px] uppercase tracking-widest">Reações</span>
                      </div>
                    ))}
                  </div>
                  
                  <div className="flex-1" />
 
-                 {/* Benção (Index 5 - Extrema Direita) */}
-                 <div className="w-22 h-30 rounded-xl border-dashed border-2 border-red-500/10 bg-red-500/5 flex items-center justify-center">
-                    <span className="text-white/40 font-black text-[7px] uppercase tracking-widest leading-none">Benção</span>
+                 {/* Benção Oponente */}
+                 <div className="w-28 h-40 rounded-xl border-dashed border-2 border-red-500/10 bg-red-500/5 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white/40 font-black text-xs uppercase tracking-widest leading-none">Benção</span>
                  </div>
               </div>
 
-              {/* ENEMY ROW 1: COMBATENTES (Index 0-4) */}
-              <div className="flex gap-2 justify-center">
+              {/* ENEMY ROW 2: COMBATENTES & EXILIO (Perto da Linha) */}
+              <div className="flex gap-2 justify-center items-center">
+                {/* Espaço invisível para alinhamento com BAN acima */}
+                <div className="w-28 h-40 invisible mr-4" />
+
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={`enemy-combatant-${i}`} className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/20 bg-black/40 flex items-center justify-center relative">
                     <AnimatePresence mode="popLayout">
@@ -588,74 +591,43 @@ export default function Arena({ onClose }: ArenaProps) {
                         <motion.div 
                           key={enemyField[i]?.id}
                           layoutId={enemyField[i]?.id}
-                          initial={{ opacity: 0, scale: 0.2, x: (2 - i) * 105, y: -600, rotate: 0 }}
-                          animate={{ 
-                            opacity: 1, 
-                            scale: 1, 
-                            x: 0, 
-                            y: (attackingInfo?.id === enemyField[i]?.id) ? 100 : 0, // BUMP DOWN when attacking
-                            rotate: 0,
-                            filter: (attackingInfo?.targetId === enemyField[i]?.id) ? "brightness(2) saturate(2) hue-rotate(-50deg)" : "brightness(1)",
-                          }}
-                          exit={{ 
-                            opacity: 0, 
-                            scale: 1.2, 
-                            rotate: 45, 
-                            filter: "brightness(4) contrast(2) blur(15px) saturate(0)",
-                            transition: { duration: 0.6, ease: "circIn" } 
-                          }}
-                          transition={{ type: "spring", stiffness: 150, damping: 15, x: { type: "tween", duration: 0.2 } }}
+                          layout
+                          initial={{ opacity: 0, scale: 0.2, y: -200 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 1.2, rotate: 45, filter: "brightness(4) blur(10px)" }}
                           onMouseEnter={() => setHoveredCard(enemyField[i])}
                           onMouseLeave={() => setHoveredCard(null)}
-                          className="w-full h-full relative p-0 bg-contain bg-center bg-no-repeat overflow-visible" 
+                          className="w-full h-full relative bg-contain bg-center bg-no-repeat" 
                           style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
                         >
-                           <div className="absolute inset-0 bg-black/10" />
-                           
-                           {/* SMALL SLEEPING BADGE */}
-                           {!enemyField[i]?.canAttack && (
-                             <motion.div 
-                               initial={{ opacity: 0, x: 10 }}
-                               animate={{ opacity: 1, x: 0, y: [0, -4, 0] }}
-                               transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
-                               className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-indigo-950/80 backdrop-blur-md border border-indigo-400/30 px-1.5 py-0.5 rounded-full shadow-lg"
-                             >
-                                <Moon className="w-3 h-3 text-indigo-300" />
-                                <span className="text-[7px] font-black text-indigo-200 tracking-tighter">ZzZ</span>
-                             </motion.div>
-                           )}
-
-                           {/* ATTACK INDICATOR */}
-                           {attackingInfo?.id === enemyField[i]?.id && (
-                             <div className="absolute inset-0 flex items-center justify-center bg-red-600/20 animate-pulse">
-                               <Sword className="text-white w-12 h-12 rotate-45 drop-shadow-2xl" />
-                             </div>
-                           )}
-                         {/* Stats Overlay */}
-                         <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                            <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{enemyField[i]?.atk}</span>
-                            <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{enemyField[i]?.hp}</span>
-                         </div>
-                         <button 
-                            onContextMenu={(e) => enemyField[i] && handleInspect(e, enemyField[i]!)}
-                            onClick={() => {
-                              if (selectedCardId && enemyField[i]) {
-                                 handleCombat(selectedCardId, enemyField[i]!.id, i);
-                              } else if (enemyField[i]) {
-                                 setInspectedCard(enemyField[i]!);
-                              }
-                            }}
-                            className={`absolute inset-0 z-30 transition-all ${selectedCardId && enemyField[i] ? 'ring-4 ring-red-500 shadow-[0_0_20px_rgba(239,68,68,0.8)] bg-red-500/20' : 'bg-white/5 opacity-0 hover:opacity-100'}`}
-                            style={{ cursor: (selectedCardId && enemyField[i]) ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
-                         />
-                      </motion.div>
-                    )}
+                           <div className="absolute inset-x-1 bottom-1 flex justify-between px-1">
+                              <span className="text-[10px] font-black text-red-500">{enemyField[i]?.atk}</span>
+                              <span className="text-[10px] font-black text-emerald-500">{enemyField[i]?.hp}</span>
+                           </div>
+                           <button 
+                              onClick={() => selectedCardId ? handleCombat(selectedCardId, enemyField[i]!.id, i) : setInspectedCard(enemyField[i]!)}
+                              className="absolute inset-0 z-30" 
+                           />
+                        </motion.div>
+                      )}
                     </AnimatePresence>
-                    {!enemyField[i] && (
-                      <span className="text-white/30 font-black text-[8px] uppercase font-serif">Combatentes</span>
-                    )}
+                    {!enemyField[i] && <span className="text-white/30 font-black text-[8px] uppercase">Combatentes</span>}
                   </div>
                 ))}
+
+                {/* ENEMY EXILIO */}
+                <div 
+                  onClick={() => enemyExile.length > 0 && setIsViewingExile('enemy')}
+                  className="w-28 h-40 rounded-xl border-2 border-dashed border-red-500/10 bg-red-500/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-red-500/30 transition-all ml-4"
+                >
+                  {enemyExile.length > 0 ? (
+                    <div className="w-full h-full bg-contain bg-center bg-no-repeat grayscale opacity-40" style={{ backgroundImage: `url("${enemyExile[enemyExile.length-1].image}")` }} />
+                  ) : <Skull className="w-8 h-8 text-red-500/10" />}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Exílio Inimigo</span>
+                    {enemyExile.length > 0 && <span className="text-sm font-mono text-red-500/40 font-black">{enemyExile.length}</span>}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -669,8 +641,24 @@ export default function Arena({ onClose }: ArenaProps) {
 
             {/* PLAYER SIDE (2 ROWS) */}
             <div className="flex flex-col gap-2">
-              {/* PLAYER ROW 1: COMBATENTES (Index 0-4) */}
-              <div className="flex gap-2 justify-center">
+              {/* PLAYER ROW 1: EXILIO & COMBATENTES & BAN OPONENTE */}
+              <div className="flex gap-2 justify-center items-center">
+                {/* PLAYER EXILIO (ESQUERDA) */}
+                <div 
+                  onClick={() => playerExile.length > 0 && setIsViewingExile('player')}
+                  className="w-28 h-40 rounded-xl border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer hover:border-white/20 transition-all mr-4"
+                >
+                  {playerExile.length > 0 ? (
+                    <div className="w-full h-full bg-contain bg-center bg-no-repeat grayscale opacity-40" style={{ backgroundImage: `url("${playerExile[playerExile.length-1].image}")` }} />
+                  ) : (
+                    <History className="w-8 h-8 text-white/5" />
+                  )}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+                     <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Seu Exílio</span>
+                     {playerExile.length > 0 && <span className="text-sm font-mono text-white/40 font-black">{playerExile.length}</span>}
+                  </div>
+                </div>
+
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={`player-combatant-${i}`} className="relative z-50">
                     <div 
@@ -684,136 +672,50 @@ export default function Arena({ onClose }: ArenaProps) {
                     >
                       {field[i] ? (
                         <>
-                          {/* Floating Action Menu (ABOVE THE CARD) */}
-                          <AnimatePresence>
-                            {activeActionMenu?.index === i && (
-                               <motion.div 
-                                 initial={{ opacity: 0, scale: 0.5 }}
-                                 animate={{ opacity: 1, y: -8, scale: 1 }}
-                                 exit={{ opacity: 0, scale: 0.5 }}
-                                 className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                    <button 
-                                      onClick={() => {
-                                        if (turnCount === 1) {
-                                          setHistory(prev => ["● Regra: Ataques proibidos no Turno 1", ...prev]);
-                                          setActiveActionMenu(null);
-                                          return;
-                                        }
-                                        setSelectedCardId(field[i]!.id);
-                                        setActiveActionMenu(null);
-                                      }}
-                                      title="Atacar"
-                                      className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 active:scale-90 border border-white/20 ${turnCount === 1 ? 'bg-gray-600 opacity-50 cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.5)]'}`}
-                                    >
-                                       <Sword className="w-5 h-5 text-white" />
-                                    </button>
-                                 <button 
-                                   onClick={() => {
-                                     setHistory(prev => [`● ${field[i]!.name} em posição de Defesa`, ...prev]);
-                                     setActiveActionMenu(null);
-                                   }}
-                                   title="Defender"
-                                   className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all hover:scale-110 active:scale-90 border border-white/20"
-                                 >
-                                    <Shield className="w-5 h-5 text-white" />
-                                 </button>
-                                 <button 
-                                   onClick={() => {
-                                     setInspectedCard(field[i]!);
-                                     setActiveActionMenu(null);
-                                   }}
-                                   title="Visualizar"
-                                   className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all hover:scale-110 active:scale-90 border border-white/20"
-                                 >
-                                    <Eye className="w-5 h-5 text-white" />
-                                 </button>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          <AnimatePresence mode="popLayout">
-                            {field[i] && (
-                              <motion.div
-                                key={field[i]?.id}
-                                layoutId={field[i]?.id}
-                                animate={{ 
-                                  y: (attackingInfo?.id === field[i]?.id) ? -120 : 0,
-                                  x: (attackingInfo?.id === field[i]?.id) ? (attackingInfo as any).xOffset || 0 : ((attackingInfo?.targetId === field[i]?.id) ? [0, -5, 5, -5, 5, 0] : 0),
-                                  filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)",
-                                }}
-                                exit={{ 
-                                  scale: 1.2, 
-                                  opacity: 0, 
-                                  rotate: -45,
-                                  filter: "brightness(4) contrast(2) blur(15px) saturate(0)",
-                                  transition: { duration: 0.6, ease: "circIn" }
-                                }}
-                                transition={{ 
-                                  type: "spring", stiffness: 150, damping: 15,
-                                  x: { type: "tween", duration: 0.2 }
-                                }}
-                                onContextMenu={(e) => field[i] && handleInspect(e, field[i]!)}
-                                onMouseEnter={() => setHoveredCard(field[i])}
-                                onMouseLeave={() => setHoveredCard(null)}
-                                className={`w-full h-full overflow-visible cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''} ${!field[i]?.canAttack ? 'brightness-90' : ''}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (selectedHandCardId) {
-                                    const card = hand.find(c => c.id === selectedHandCardId);
-                                    if (card) playCard(card, i);
-                                  } else if (field[i]) {
-                                    setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i });
-                                  }
-                                }}
-                              >
-                                 <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
+                           {/* Action Menu Loop... (Condensed for replacement) */}
+                           <AnimatePresence>
+                             {activeActionMenu?.index === i && (
+                                <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, y: -8, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => turnCount !== 1 ? (setSelectedCardId(field[i]!.id), setActiveActionMenu(null)) : (setHistory(p => ["● Regra: Ataques proibidos no Turno 1", ...p]), setActiveActionMenu(null))} className={`w-10 h-10 rounded-full flex items-center justify-center border border-white/20 ${turnCount === 1 ? 'bg-gray-600 opacity-50' : 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]'}`}><Sword className="w-5 h-5 text-white" /></button>
+                                    <button onClick={() => (setHistory(p => [`● ${field[i]!.name} em posição de Defesa`, ...p]), setActiveActionMenu(null))} className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center border border-white/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]"><Shield className="w-5 h-5 text-white" /></button>
+                                    <button onClick={() => (setInspectedCard(field[i]!), setActiveActionMenu(null))} className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border border-white/20 shadow-[0_0_15px_rgba(37,99,235,0.5)]"><Eye className="w-5 h-5 text-white" /></button>
+                                </motion.div>
+                             )}
+                           </AnimatePresence>
+                           <AnimatePresence mode="popLayout">
+                             {field[i] && (
+                               <motion.div key={field[i]?.id} layoutId={field[i]?.id} animate={{ y: (attackingInfo?.id === field[i]?.id) ? -120 : 0, filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)" }} onMouseEnter={() => setHoveredCard(field[i])} onMouseLeave={() => setHoveredCard(null)} className={`w-full h-full overflow-visible cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold' : ''}`} onClick={(e) => { e.stopPropagation(); if (selectedHandCardId) { const card = hand.find(c => c.id === selectedHandCardId); if (card) playCard(card, i); } else if (field[i]) setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i }); }}>
+                                  <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
                                      <div className="absolute inset-0 bg-black/10" />
-                                     
-                                     {/* SMALL SLEEPING BADGE */}
-                                     {!field[i]?.canAttack && (
-                                       <motion.div 
-                                         initial={{ opacity: 0, x: 10 }}
-                                         animate={{ opacity: 1, x: 0, y: [0, -4, 0] }}
-                                         transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
-                                         className="absolute top-2 right-2 z-50 flex items-center gap-1 bg-indigo-950/80 backdrop-blur-md border border-indigo-400/30 px-1.5 py-0.5 rounded-full shadow-lg"
-                                       >
-                                          <Moon className="w-2.5 h-2.5 text-indigo-300" />
-                                          <span className="text-[7px] font-black text-indigo-200 tracking-tighter">ZzZ</span>
-                                       </motion.div>
-                                     )}
-
-                                     {attackingInfo?.id === field[i]?.id && (
-                                       <div className="absolute inset-0 flex items-center justify-center bg-amber-500/20 animate-pulse">
-                                         <Sword className="text-white w-12 h-12 -rotate-45 drop-shadow-2xl" />
-                                       </div>
-                                     )}
-                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                                        <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{field[i]?.atk}</span>
-                                        <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{field[i]?.hp}</span>
-                                     </div>
+                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1"><span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span><span className="text-[10px] font-black text-emerald-500">{field[i]?.hp}</span></div>
                                   </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                               </motion.div>
+                             )}
+                           </AnimatePresence>
                         </>
-                      ) : (
-                        <span className="text-white/20 font-black text-[8px] uppercase font-serif">Combatentes</span>
-                      )}
+                      ) : <span className="text-white/20 font-black text-[8px] uppercase font-serif">Combatentes</span>}
                     </div>
                   </div>
                 ))}
+
+                {/* Espaço Vazio para Alinhamento (Removido BAN lateral da Benção) */}
+                <div className="w-28 h-40 invisible ml-4" />
               </div>
 
-              {/* PLAYER ROW 2: REAÇÕES (ESQUERDA) & BENÇÃO (DIREITA) */}
+              {/* PLAYER ROW 2: BAN JOGADOR & REAÇÕES & BENÇÃO */}
               <div className="flex gap-2">
-                 {/* Reações (Index 6-8 - À ESQUERDA) */}
+                 {/* BAN DO JOGADOR (Abaixo do Exílio Jogador) */}
+                 <div className="w-28 h-40 rounded-xl border-2 border-gold/20 bg-black/40 flex items-center justify-center relative overflow-hidden transition-all hover:border-gold/40 mr-4 group">
+                     <div className="text-[10px] font-black text-white/20 group-hover:text-white/40 transition-colors uppercase text-center leading-tight tracking-widest">Seu<br/>BAN</div>
+                     <div className="absolute inset-0 bg-gradient-to-t from-gold/10 to-transparent" />
+                 </div>
+
+                 {/* Reações (Index 6-8) */}
                  <div className="flex gap-2">
                    {[6, 7, 8].map((i) => (
                      <div key={`player-reaction-${i}`} className="w-20 h-28 rounded-xl border-dashed border-2 border-emerald-500/10 bg-emerald-500/5 flex items-center justify-center transition-all hover:bg-emerald-500/10 hover:border-emerald-500/30 cursor-pointer">
                        {field[i] ? (
-                         <div className="w-full h-full rounded-xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url("${field[i]!.image}")` }} />
+                         <div className="w-full h-full rounded-xl bg-contain bg-center bg-no-repeat opacity-80" style={{ backgroundImage: `url("${field[i]!.image}")` }} />
                        ) : (
                          <span className="text-white/30 font-black text-[6px] uppercase tracking-widest">Reações</span>
                        )}
@@ -824,45 +726,19 @@ export default function Arena({ onClose }: ArenaProps) {
                  <div className="flex-1" />
 
                  {/* Benção (Index 5 - Extrema Direita) */}
-                 <div className="w-22 h-30 rounded-xl border-dashed border-2 border-gold/10 bg-gold/5 flex items-center justify-center transition-all hover:bg-gold/10 hover:border-gold/30 cursor-pointer">
+                 <div className="w-28 h-40 rounded-xl border-dashed border-2 border-gold/10 bg-gold/5 flex items-center justify-center transition-all hover:bg-gold/10 hover:border-gold/30 cursor-pointer flex-shrink-0">
                     {field[5] ? (
-                      <div className="w-full h-full rounded-xl bg-cover bg-center opacity-80" style={{ backgroundImage: `url("${field[5].image}")` }} />
+                      <div className="w-full h-full rounded-xl bg-contain bg-center bg-no-repeat opacity-80" style={{ backgroundImage: `url("${field[5].image}")` }} />
                     ) : (
-                      <span className="text-white/50 font-black text-[7px] uppercase tracking-widest leading-none">Benção</span>
+                      <span className="text-white/50 font-black text-xs uppercase tracking-widest leading-none">Benção</span>
                     )}
                  </div>
               </div>
             </div>
           </div>
 
-           {/* RIGHT SIDEBAR (Fixed column) */}
            <div className="w-32 flex flex-col gap-10 items-center h-[70vh] justify-center pb-10 self-center">
-             {/* EXÍLIO */}
-             <div 
-                onClick={() => exile.length > 0 && setIsViewingExile(true)}
-                className="w-full h-44 rounded-xl border-4 border-white/5 bg-black/40 backdrop-blur-md flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-white/20 transition-all"
-              >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-2">Exílio</span>
-                  <div className="relative w-20 h-28 transform group-hover:scale-105 transition-transform">
-                    {exile.length > 0 ? (
-                      <motion.div 
-                         layoutId={exile[exile.length - 1].id}
-                         className="w-full h-full rounded-lg bg-cover bg-center border border-white/20 shadow-2xl relative overflow-hidden"
-                         style={{ backgroundImage: `url("${exile[exile.length - 1].image}")` }}
-                      >
-                         <div className="absolute inset-0 bg-black/40" />
-                         <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/60 rounded text-[8px] font-black text-white/60">
-                           {exile.length}
-                         </div>
-                      </motion.div>
-                    ) : (
-                      <div className="w-full h-full border-2 border-dashed border-white/10 rounded-lg flex items-center justify-center">
-                         <Skull className="w-8 h-8 text-white/5" />
-                      </div>
-                    )}
-                  </div>
-               </div>
+             <div className="flex-1" />
 
              {/* DECK (Bottom) */}
              <div className="flex flex-col items-center gap-2 group">
@@ -1076,59 +952,73 @@ export default function Arena({ onClose }: ArenaProps) {
           </motion.div>
         )}
 
-        {/* EXILE LIST PANEL (Side Panel instead of Modal) */}
+        {/* EXILE LIST PANEL (Side Panel) */}
         {isViewingExile && (
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="fixed top-1/2 -translate-y-1/2 right-44 z-[110] w-64 max-h-[75vh] flex flex-col bg-black/40 backdrop-blur-3xl rounded-[2rem] border-2 border-white/5 shadow-[0_0_100px_rgba(0,0,0,0.9)] overflow-hidden"
+            exit={{ opacity: 0, x: 50 }}
+            className="fixed top-1/2 -translate-y-1/2 right-4 z-[110] w-72 max-h-[85vh] flex flex-col bg-black/60 backdrop-blur-3xl rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,1)] overflow-hidden"
           >
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-red-950/10">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
-                  <Skull className="w-4 h-4 text-red-500" />
+                <div className={`p-2 rounded-lg border ${isViewingExile === 'player' ? 'bg-white/10 border-white/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                  {isViewingExile === 'player' ? <History className="w-4 h-4 text-white" /> : <Skull className="w-4 h-4 text-red-500" />}
                 </div>
                 <div>
-                  <h2 className="text-xs font-black text-white uppercase tracking-widest">Exílio</h2>
-                  <p className="text-[8px] font-mono text-red-500/60 uppercase">{exile.length} cartas</p>
+                  <h2 className="text-xs font-black text-white uppercase tracking-widest">
+                    {isViewingExile === 'player' ? 'Cripta Pessoal' : 'Cripta Inimiga'}
+                  </h2>
+                  <p className="text-[8px] font-mono text-white/40 uppercase">
+                    {isViewingExile === 'player' ? 'Onde jazem seus heróis' : 'Restos do oponente'}
+                  </p>
                 </div>
               </div>
               <button 
-                onClick={() => setIsViewingExile(false)}
+                onClick={() => setIsViewingExile(null)}
                 className="p-2 hover:bg-white/5 rounded-full transition-all text-white/20 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-4">
-              {exile.slice().reverse().map((card, idx) => (
-                <motion.div
-                  key={`exile-card-${card.id}-${idx}`}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  onMouseEnter={() => setHoveredCard(card)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  className="group relative"
-                >
-                  <div className="aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/30 transition-all shadow-xl relative cursor-pointer">
-                    <img src={card.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100 transition-all duration-500" />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-all" />
-                    
-                    {/* Stats overlay */}
-                    <div className="absolute bottom-2 inset-x-3 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] font-black text-red-500 drop-shadow-lg">{card.atk}</span>
-                      <span className="text-[10px] font-black text-emerald-500 drop-shadow-lg">{card.hp}</span>
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="grid grid-cols-1 gap-4 pb-4">
+                {(isViewingExile === 'player' ? playerExile : enemyExile).slice().reverse().map((card, idx) => (
+                  <motion.div
+                    key={`${isViewingExile}-exile-${card.id}-${idx}`}
+                    onMouseEnter={() => setHoveredCard(card)}
+                    onMouseLeave={() => setHoveredCard(null)}
+                    className="group relative"
+                  >
+                    <div className="aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                      <img 
+                         src={card.image} 
+                         className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all opacity-60 group-hover:opacity-100" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                         <span className="text-[10px] font-black text-white uppercase tracking-tighter truncate">{card.name}</span>
+                         <div className="flex justify-between mt-1">
+                            <span className="text-[9px] font-bold text-red-500">{card.atk}</span>
+                            <span className="text-[9px] font-bold text-emerald-500">{card.hp}</span>
+                         </div>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
+                {(isViewingExile === 'player' ? playerExile : enemyExile).length === 0 && (
+                   <div className="py-20 text-center space-y-2 opacity-20">
+                      <Ghost className="w-8 h-8 mx-auto" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">Vazio</p>
+                   </div>
+                )}
+              </div>
             </div>
             
-            <div className="p-4 bg-black/20 text-center">
-               <span className="text-[8px] font-black text-white/10 uppercase tracking-[0.3em]">Fim da Cripta</span>
+            <div className="p-4 bg-black/40 text-center border-t border-white/5">
+               <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">
+                 Fim do Registro
+               </span>
             </div>
           </motion.div>
         )}
