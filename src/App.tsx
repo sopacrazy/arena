@@ -9,9 +9,15 @@ import Hero from './components/Hero';
 import FeatureIcons from './components/FeatureIcons';
 import CardPreview from './components/CardPreview';
 import Arena from './components/Arena';
+import AdminPanel from './components/AdminPanel';
 
 export default function App() {
   const [showArena, setShowArena] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  if (showAdmin) {
+    return <AdminPanel onClose={() => setShowAdmin(false)} />;
+  }
 
   if (showArena) {
     return <Arena onClose={() => setShowArena(false)} />;
@@ -19,7 +25,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-gold/30 flex flex-col">
-      <Navbar onArenaClick={() => setShowArena(true)} />
+      <Navbar onArenaClick={() => setShowArena(true)} onAdminClick={() => setShowAdmin(true)} />
       <main className="flex-grow">
         <Hero />
       </main>

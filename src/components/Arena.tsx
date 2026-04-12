@@ -135,6 +135,29 @@ export default function Arena({ onClose }: ArenaProps) {
 
   const [hoveredCard, setHoveredCard] = useState<Card | null>(null);
   const [isViewingExile, setIsViewingExile] = useState<null | 'player' | 'enemy'>(null);
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  // Turn Timer Logic
+  React.useEffect(() => {
+    if (gameStatus !== 'playing' || isTransitioning) return;
+    
+    // Reset timer to 30 when turn changes
+    setTimeLeft(30);
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          if (turn === 'player') {
+            endTurn();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [turn, gameStatus, isTransitioning]);
 
   const drawCard = () => {
     if (deck.length > 0) {
@@ -240,13 +263,23 @@ export default function Arena({ onClose }: ArenaProps) {
     setTimeout(() => setIsTransitioning(null), 1500);
   };
 
-   const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
+  const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
     try {
       const attacker = enemyField.find(c => c?.id === attackerId);
       if (!attacker) return;
 
-      setAttackingInfo({ id: attackerId, targetId: targetId === 'hero' ? 'hero' : targetId, isOpponent: true });
-      await new Promise(r => setTimeout(r, 400)); // Impacto mais rápido
+      // Calculate xOffset for AI attack animation
+      let xOffset = 0;
+      const attackerIndex = enemyField.findIndex(c => c?.id === attackerId);
+      if (targetId !== 'hero') {
+        const targetIndex = field.findIndex(c => c?.id === targetId);
+        if (attackerIndex !== -1 && targetIndex !== -1) {
+          xOffset = (targetIndex - attackerIndex) * 120; // 120 = slot width (112) + gap (8)
+        }
+      }
+
+      setAttackingInfo({ id: attackerId, targetId: targetId === 'hero' ? 'hero' : targetId, isOpponent: true, xOffset });
+      await new Promise(r => setTimeout(r, 400)); // Impacto
 
       if (targetId === 'hero') {
         const hasBlockers = field.some(c => c !== null);
@@ -356,9 +389,12 @@ export default function Arena({ onClose }: ArenaProps) {
 
       // Calculate attack direction (x offset) based on slot positions
       let xOffset = 0;
+      const attackerIndex = field.findIndex(c => c?.id === attackerId);
       if (targetIndex !== undefined) {
-        const attackerIndex = field.findIndex(c => c?.id === attackerId);
-        xOffset = (targetIndex - attackerIndex) * 40; 
+        xOffset = (targetIndex - attackerIndex) * 120; 
+      } else if (targetId === 'hero') {
+        // Approximate hero center based on layout
+        xOffset = ( -2 - attackerIndex) * 120;
       }
 
       setAttackingInfo({ 
@@ -535,6 +571,21 @@ export default function Arena({ onClose }: ArenaProps) {
           
           {/* LEFT SIDEBAR (HUD) */}
           <div className="w-40 flex flex-col items-center justify-center gap-6 self-center">
+            {/* TURN TIMER */}
+            <div className="flex flex-col items-center gap-1 mb-2">
+                <div className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Tempo Restante</div>
+                <div className={`text-2xl font-black font-mono transition-colors ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-gold'}`}>
+                  {String(timeLeft).padStart(2, '0')}s
+                </div>
+                <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden mt-1">
+                   <motion.div 
+                     initial={{ width: '100%' }}
+                     animate={{ width: `${(timeLeft / 30) * 100}%` }}
+                     className={`h-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-gold'}`}
+                   />
+                </div>
+            </div>
+
             {/* COMPACT END TURN BUTTON */}
             <button 
                 onClick={endTurn}
@@ -592,11 +643,18 @@ export default function Arena({ onClose }: ArenaProps) {
                           layoutId={enemyField[i]?.id}
                           layout
                           initial={{ opacity: 0, scale: 0.2, y: -200 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          animate={{ 
+                            opacity: 1, 
+                            scale: 1, 
+                            y: (attackingInfo?.id === enemyField[i]?.id) ? 120 : 0,
+                            x: (attackingInfo?.id === enemyField[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
+                            filter: (attackingInfo?.targetId === enemyField[i]?.id) ? "brightness(2) saturate(2) hue-rotate(-50deg)" : "brightness(1)"
+                          }}
                           exit={{ opacity: 0, scale: 1.2, rotate: 45, filter: "brightness(4) blur(10px)" }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
                           onMouseEnter={() => setHoveredCard(enemyField[i])}
                           onMouseLeave={() => setHoveredCard(null)}
-                          className="w-full h-full relative bg-contain bg-center bg-no-repeat" 
+                          className={`w-full h-full relative bg-contain bg-center bg-no-repeat transition-all ${selectedCardId ? 'ring-2 ring-red-500 group-hover:ring-offset-2 hover:scale-105' : ''}`} 
                           style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
                         >
                            <div className="absolute inset-x-1 bottom-1 flex justify-between px-1">
@@ -605,7 +663,7 @@ export default function Arena({ onClose }: ArenaProps) {
                            </div>
                            <button 
                               onClick={() => selectedCardId ? handleCombat(selectedCardId, enemyField[i]!.id, i) : setInspectedCard(enemyField[i]!)}
-                              className="absolute inset-0 z-30" 
+                              className="absolute inset-0 z-30 cursor-crosshair" 
                            />
                         </motion.div>
                       )}
@@ -667,10 +725,35 @@ export default function Arena({ onClose }: ArenaProps) {
                            </AnimatePresence>
                            <AnimatePresence mode="popLayout">
                              {field[i] && (
-                               <motion.div key={field[i]?.id} layoutId={field[i]?.id} animate={{ y: (attackingInfo?.id === field[i]?.id) ? -120 : 0, filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)" }} onMouseEnter={() => setHoveredCard(field[i])} onMouseLeave={() => setHoveredCard(null)} className={`w-full h-full overflow-visible cursor-pointer relative z-20 ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold' : ''}`} onClick={(e) => { e.stopPropagation(); if (selectedHandCardId) { const card = hand.find(c => c.id === selectedHandCardId); if (card) playCard(card, i); } else if (field[i]) setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i }); }}>
+                               <motion.div 
+                                 key={field[i]?.id} 
+                                 layoutId={field[i]?.id} 
+                                 animate={{ 
+                                   y: (attackingInfo?.id === field[i]?.id) ? -120 : 0, 
+                                   x: (attackingInfo?.id === field[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
+                                   filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)" 
+                                 }} 
+                                 exit={{ opacity: 0, scale: 1.5, rotate: -45, filter: "brightness(4) blur(10px)" }}
+                                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                 onMouseEnter={() => setHoveredCard(field[i])} 
+                                 onMouseLeave={() => setHoveredCard(null)} 
+                                 className={`w-full h-full overflow-visible cursor-pointer relative z-20 transition-all ${selectedCardId === field[i]?.id ? 'ring-2 ring-gold shadow-[0_0_20px_rgba(255,215,0,0.5)]' : ''}`} 
+                                 onClick={(e) => { 
+                                   e.stopPropagation(); 
+                                   if (selectedHandCardId) { 
+                                     const card = hand.find(c => c.id === selectedHandCardId); 
+                                     if (card) playCard(card, i); 
+                                   } else if (field[i]) {
+                                     setActiveActionMenu(activeActionMenu?.index === i ? null : { card: field[i]!, index: i }); 
+                                   }
+                                 }}
+                               >
                                   <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
                                      <div className="absolute inset-0 bg-black/10" />
-                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1"><span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span><span className="text-[10px] font-black text-emerald-500">{field[i]?.hp}</span></div>
+                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                                       <span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span>
+                                       <span className="text-[10px] font-black text-emerald-500">{field[i]?.hp}</span>
+                                     </div>
                                   </div>
                                </motion.div>
                              )}
@@ -778,7 +861,7 @@ export default function Arena({ onClose }: ArenaProps) {
             </div>
 
             {/* Hand (Pinned to Bottom Right - Fixed) */}
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
+            <div className="fixed bottom-2 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center gap-1">
                 <span className="text-[7px] font-black text-white/30 uppercase tracking-[0.4em]">Sua Mão</span>
                 <div className="flex justify-center -space-x-2">
                   <AnimatePresence>

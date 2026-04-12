@@ -4,9 +4,10 @@ import { motion } from 'motion/react';
 
 interface NavbarProps {
   onArenaClick: () => void;
+  onAdminClick: () => void;
 }
 
-export default function Navbar({ onArenaClick }: NavbarProps) {
+export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -41,6 +42,12 @@ export default function Navbar({ onArenaClick }: NavbarProps) {
                 <span className="absolute -bottom-1 left-0 w-0 h-px bg-gold transition-all group-hover:w-full" />
               </a>
             ))}
+            <button 
+                onClick={onAdminClick}
+                className="text-[11px] font-black text-gold/60 hover:text-gold transition-all tracking-[0.2em] uppercase cursor-pointer"
+              >
+                Forjar
+            </button>
           </div>
 
           {/* Action Button */}
