@@ -136,7 +136,7 @@ export default function Arena({ onClose }: ArenaProps) {
   const fieldRef = React.useRef(field);
   const enemyFieldRef = React.useRef(enemyField);
 
-  const [summoningConfig, setSummoningConfig] = useState<{ card: Card, mode: 'attack' | 'defense' } | null>(null);
+  const [summoningConfig, setSummoningConfig] = useState<{ card: Card, mode: 'attack' | 'defense' | null } | null>(null);
 
   React.useEffect(() => { fieldRef.current = field; }, [field]);
   React.useEffect(() => { enemyFieldRef.current = enemyField; }, [enemyField]);
@@ -989,7 +989,7 @@ export default function Arena({ onClose }: ArenaProps) {
                              setSummoningConfig(null);
                           } else {
                              setSelectedHandCardId(card.id);
-                             setSummoningConfig({ card, mode: 'attack' });
+                             setSummoningConfig({ card, mode: null });
                              setSelectedCardId(null);
                           }
                         }}
@@ -1002,7 +1002,7 @@ export default function Arena({ onClose }: ArenaProps) {
                          
                          <motion.div
                            variants={{
-                             initial: { opacity: 0, scale: 0.5, x: 800, y: -300, rotate: 45 },
+                             initial: { opacity: 0, scale: 0.5, x: 800, y: -300, rotate: 0 },
                             animate: { 
                               opacity: 1, 
                               scale: 1, 
@@ -1046,55 +1046,53 @@ export default function Arena({ onClose }: ArenaProps) {
       
             {/* SUMMONING MODE SELECTOR (OVERLAY) */}
             <AnimatePresence>
-              {summoningConfig && selectedHandCardId && !playedCardThisTurn && (
+              {summoningConfig && selectedHandCardId && !playedCardThisTurn && summoningConfig.mode === null && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9, y: 50 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                  className="fixed bottom-40 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-6 p-8 bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)]"
+                  className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
                 >
-                   <div className="text-center space-y-2">
-                     <h3 className="text-xl font-black text-gold uppercase tracking-[0.2em] italic">Preparar Invocação</h3>
-                     <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Escolha a posição de batalha para "{summoningConfig.card.name}"</p>
-                   </div>
+                   <motion.div className="flex flex-col items-center gap-6 p-8 bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)]">
+                      <div className="text-center space-y-2">
+                        <h3 className="text-xl font-black text-gold uppercase tracking-[0.2em] italic">Preparar Invocação</h3>
+                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Escolha a posição de batalha para "{summoningConfig.card.name}"</p>
+                      </div>
 
-                   <div className="flex gap-8">
-                      <button 
-                        onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'attack' })}
-                        className={`group relative w-40 h-56 rounded-2xl border-2 transition-all flex flex-col items-center justify-between p-4 overflow-hidden
-                          ${summoningConfig.mode === 'attack' ? 'border-red-500 bg-red-500/10 shadow-[0_0_30px_rgba(239,68,68,0.3)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
-                      >
-                         <div className="relative z-10 text-center space-y-1">
-                            <Sword className={`w-8 h-8 mx-auto ${summoningConfig.mode === 'attack' ? 'text-red-500' : 'text-white/20 group-hover:text-white/40'}`} />
-                            <div className="text-xs font-black text-white uppercase tracking-widest">Ataque</div>
-                         </div>
-                         <div 
-                           className={`w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100
-                             ${summoningConfig.mode === 'attack' ? 'grayscale-0 brightness-100 scale-105' : ''}`}
-                           style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
-                         />
-                         <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Up</div>
-                      </button>
+                      <div className="flex gap-8">
+                         <button 
+                           onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'attack' })}
+                           className="group relative w-40 h-56 rounded-2xl border-2 border-white/10 bg-white/5 hover:border-red-500 hover:bg-red-500/10 transition-all flex flex-col items-center justify-between p-4 overflow-hidden"
+                         >
+                            <div className="relative z-10 text-center space-y-1">
+                               <Sword className="w-8 h-8 mx-auto text-white/20 group-hover:text-red-500" />
+                               <div className="text-xs font-black text-white uppercase tracking-widest">Ataque</div>
+                            </div>
+                            <div 
+                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100"
+                              style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
+                            />
+                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Up</div>
+                         </button>
 
-                      <button 
-                        onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'defense' })}
-                        className={`group relative w-40 h-56 rounded-2xl border-2 transition-all flex flex-col items-center justify-between p-4 overflow-hidden
-                          ${summoningConfig.mode === 'defense' ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.3)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
-                      >
-                         <div className="relative z-10 text-center space-y-1">
-                            <Shield className={`w-8 h-8 mx-auto ${summoningConfig.mode === 'defense' ? 'text-emerald-500' : 'text-white/20 group-hover:text-white/40'}`} />
-                            <div className="text-xs font-black text-white uppercase tracking-widest">Defesa</div>
-                         </div>
-                         <div 
-                           className={`w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 rotate-90 scale-75
-                             ${summoningConfig.mode === 'defense' ? 'grayscale-0 brightness-100 scale-90' : ''}`}
-                           style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
-                         />
-                         <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Down</div>
-                      </button>
-                   </div>
+                         <button 
+                           onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'defense' })}
+                           className="group relative w-40 h-56 rounded-2xl border-2 border-white/10 bg-white/5 hover:border-emerald-500 hover:bg-emerald-500/10 transition-all flex flex-col items-center justify-between p-4 overflow-hidden"
+                         >
+                            <div className="relative z-10 text-center space-y-1">
+                               <Shield className="w-8 h-8 mx-auto text-white/20 group-hover:text-emerald-500" />
+                               <div className="text-xs font-black text-white uppercase tracking-widest">Defesa</div>
+                            </div>
+                            <div 
+                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 rotate-90 scale-75"
+                              style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
+                            />
+                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Down</div>
+                         </button>
+                      </div>
 
-                   <div className="text-[10px] font-black text-gold/60 animate-pulse tracking-[0.3em] uppercase">Clique em um espaço vazio na Arena para Invocação</div>
+                      <div className="text-[10px] font-black text-gold/60 animate-pulse tracking-[0.3em] uppercase">Selecione uma posição para liberar o campo</div>
+                   </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
