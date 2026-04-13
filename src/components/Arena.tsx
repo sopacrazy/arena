@@ -853,18 +853,18 @@ export default function Arena({ onClose }: ArenaProps) {
                                    }
                                  }}
                                >
-                                  <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
-                                     <div className={`absolute inset-0 ${field[i]?.isFaceDown ? 'bg-black/60 backdrop-blur-sm group-hover:bg-black/40' : 'bg-black/10'}`} />
-                                     {field[i]?.isFaceDown && (
-                                       <div className="absolute inset-0 flex items-center justify-center">
-                                          <Ghost className="w-8 h-8 text-white/20 animate-pulse" />
-                                       </div>
-                                     )}
-                                     <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                                       <span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span>
-                                       <span className="text-[10px] font-black text-emerald-500">{field[i]?.def}</span>
-                                     </div>
-                                  </div>
+                                   <div 
+                                     className="relative w-full h-full bg-contain bg-center bg-no-repeat" 
+                                     style={{ backgroundImage: field[i]?.isFaceDown ? 'url("/fundo.png")' : `url("${field[i]?.image}")` }}
+                                   >
+                                      <div className={`absolute inset-0 ${field[i]?.isFaceDown ? 'bg-black/20' : 'bg-black/10'}`} />
+                                      {!field[i]?.isFaceDown && (
+                                        <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                                          <span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span>
+                                          <span className="text-[10px] font-black text-emerald-500">{field[i]?.def}</span>
+                                        </div>
+                                      )}
+                                   </div>
                                </motion.div>
                              )}
                            </AnimatePresence>
