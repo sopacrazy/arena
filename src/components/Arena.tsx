@@ -6,16 +6,14 @@ interface Card {
   id: string;
   name: string;
   type: string;
-  cost: number;
   atk: number;
-  hp: number;
-  maxHp: number;
+  def: number;
   stars: number;
   desc: string;
   color: string;
   image?: string;
   canAttack: boolean;
-  hasTaunt?: boolean;
+  position: 'attack' | 'defense';
 }
 
 // Catalog base for game cards from 'RECK 1'
@@ -49,43 +47,40 @@ const DECK_POOL: Card[] = [
     id: `n-${i}`,
     name: c.name,
     type: 'Neutro',
-    atk: 1 + Math.floor(Math.random() * 3),
-    hp: 2 + Math.floor(Math.random() * 3),
-    maxHp: 5,
+    atk: 10 + Math.floor(Math.random() * 5), // Stats scaled to YGO style (e.g. 10 atk base)
+    def: 8 + Math.floor(Math.random() * 5),
     stars: 1 + Math.floor(Math.random() * 2),
-    cost: 1 + Math.floor(i/3),
-    desc: 'Unidade básica',
+    desc: 'Unidade básica de infantaria.',
     color: 'gray',
     image: c.img,
-    canAttack: false
+    canAttack: false,
+    position: 'attack'
   })),
   ...CARD_CATALOG.prata.map((c, i) => ({
     id: `p-${i}`,
     name: c.name,
     type: 'Prata',
-    atk: 4 + Math.floor(Math.random() * 3),
-    hp: 4 + Math.floor(Math.random() * 3),
-    maxHp: 8,
+    atk: 22 + Math.floor(Math.random() * 5),
+    def: 18 + Math.floor(Math.random() * 5),
     stars: 3 + Math.floor(Math.random() * 2),
-    cost: 4 + i,
-    desc: 'Unidade de elite',
+    desc: 'Comandante de elite.',
     color: 'silver',
     image: c.img,
-    canAttack: false
+    canAttack: false,
+    position: 'attack'
   })),
   ...CARD_CATALOG.ouro.map((c, i) => ({
     id: `o-${i}`,
     name: c.name,
     type: 'Ouro',
-    atk: 7 + Math.floor(Math.random() * 4),
-    hp: 8 + Math.floor(Math.random() * 4),
-    maxHp: 12,
+    atk: 35 + Math.floor(Math.random() * 10),
+    def: 30 + Math.floor(Math.random() * 10),
     stars: 6 + Math.floor(Math.random() * 3),
-    cost: 7 + i,
-    desc: 'Lenda do campo',
+    desc: 'Entidade lendária do campo de batalha.',
     color: 'yellow',
     image: c.img,
-    canAttack: false
+    canAttack: false,
+    position: 'attack'
   }))
 ];
 
@@ -222,15 +217,11 @@ export default function Arena({ onClose }: ArenaProps) {
       setHistory(prev => [`● BENÇÃO: '${blessingCard.name}' retornou ao éter (Exílio)`, ...prev]);
     }
 
-    // MTG STYLE: Healing at end of turn
-    setField(prev => prev.map(c => c ? { ...c, hp: c.maxHp, canAttack: true } : null));
-
     setTurn('opponent');
     setPlayedCardThisTurn(false);
     setSelectedCardId(null);
     setActiveActionMenu(null);
     setIsTransitioning("TURNO DO ADVERSÁRIO");
-    setHistory(prev => ["● CURA: Seus combatentes recuperaram a vida!", ...prev]);
     setTimeout(() => setIsTransitioning(null), 1500);
 
     // AI Logic Start
@@ -289,75 +280,84 @@ export default function Arena({ onClose }: ArenaProps) {
       }
     }
 
-    // 3. End Turn (FLUID TRANSITION + RECOVER CARDS & HP)
-    setEnemyField(prev => prev.map(c => c ? { ...c, hp: c.maxHp, canAttack: true } : null)); 
+    // 3. End Turn (FLUID TRANSITION)
+    setEnemyField(prev => prev.map(c => c ? { ...c, canAttack: true } : null)); 
     setTurn('player');
     setTurnCount(prev => prev + 1);
     setPlayedCardThisTurn(false);
     setIsTransitioning("SEU TURNO");
-    setHistory(prev => ["● SEU TURNO: Oponentes curados. Planeje!", ...prev]);
+    setHistory(prev => ["● SEU TURNO: Planeje sua jogada!", ...prev]);
     drawCard();
     setTimeout(() => setIsTransitioning(null), 1500);
   };
 
   const handleOpponentAttack = async (attackerId: string, targetId: string | 'hero') => {
     try {
-      const attacker = enemyField.find(c => c?.id === attackerId);
+      const attacker = enemyFieldRef.current.find(c => c?.id === attackerId);
       if (!attacker) return;
 
-      // Calculate xOffset for AI attack animation
       let xOffset = 0;
       const attackerIndex = enemyField.findIndex(c => c?.id === attackerId);
       if (targetId !== 'hero') {
         const targetIndex = field.findIndex(c => c?.id === targetId);
         if (attackerIndex !== -1 && targetIndex !== -1) {
-          xOffset = (targetIndex - attackerIndex) * 120; // 120 = slot width (112) + gap (8)
+          xOffset = (targetIndex - attackerIndex) * 120;
         }
       }
 
       setAttackingInfo({ id: attackerId, targetId: targetId === 'hero' ? 'hero' : targetId, isOpponent: true, xOffset });
-      await new Promise(r => setTimeout(r, 400)); // Impacto
+      await new Promise(r => setTimeout(r, 400));
 
       if (targetId === 'hero') {
         const hasBlockers = fieldRef.current.slice(0, 5).some(c => c !== null);
         if (hasBlockers) {
-          // Rule: AI must clear field if there are defenders
-          const currentField = fieldRef.current.slice(0, 5);
-          const defenderIndex = currentField.findIndex(c => c !== null);
-          const defender = currentField[defenderIndex]!;
-          
-          await new Promise(r => setTimeout(r, 50)); 
-          // Redirect attack to the first defender
-          setField(prev => prev.map(c => (c?.id === defender.id) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
-          setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - defender.atk <= 0 ? null : { ...c, hp: c.hp - defender.atk, canAttack: false }) : c));
-          if (defender.hp - attacker.atk <= 0) setPlayerExile(prev => [...prev, defender]);
-          if (attacker.hp - defender.atk <= 0) setEnemyExile(prev => [...prev, attacker]);
-          
-          setHistory(prev => [`● AI REDIRECIONADO: ${attacker.name} atacou sua defesa!`, ...prev]);
+          // AI redirect logic to first available unit
+          const currentPlayerField = fieldRef.current.slice(0, 5);
+          const firstTarget = currentPlayerField.find(c => c !== null);
+          if (firstTarget) await handleOpponentAttack(attackerId, firstTarget.id);
         } else {
           setPlayerHp(prev => Math.max(0, prev - attacker.atk));
-          setHistory(prev => [`● IMPACTO! ${attacker.name} causou ${attacker.atk} a você!`, ...prev]);
-          if (playerHp - attacker.atk <= 0) setGameStatus('defeat');
+          setHistory(prev => [`● IMPACTO! ${attacker.name} causou -${attacker.atk} LP direto!`, ...prev]);
         }
       } else {
-        const target = field.find(c => c?.id === targetId);
-        if (target) {
-          await new Promise(r => setTimeout(r, 50)); // Dano imediato
+        const defender = fieldRef.current.find(c => c?.id === targetId);
+        if (defender) {
+          await new Promise(r => setTimeout(r, 50));
           
-          // Death check (Sync fix)
-          if (target.hp - attacker.atk <= 0) {
-            setPlayerExile(prev => [...prev, target]);
+          if (defender.position === 'attack') {
+            if (attacker.atk > defender.atk) {
+              const diff = attacker.atk - defender.atk;
+              setPlayerHp(prev => Math.max(0, prev - diff));
+              setField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setPlayerExile(prev => [...prev, defender]);
+              setHistory(prev => [`● DERROTA! ${defender.name} destruído. Você perdeu ${diff} LP!`, ...prev]);
+            } else if (attacker.atk < defender.atk) {
+              const diff = defender.atk - attacker.atk;
+              setEnemyHp(prev => Math.max(0, prev - diff));
+              setEnemyField(prev => prev.map(c => c?.id === attacker.id ? null : c));
+              setEnemyExile(prev => [...prev, attacker]);
+              setHistory(prev => [`● CONTRA-ATAQUE! ${defender.name} venceu! Malakor perdeu ${diff} LP!`, ...prev]);
+            } else {
+              setField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setEnemyField(prev => prev.map(c => c?.id === attacker.id ? null : c));
+              setPlayerExile(prev => [...prev, defender]);
+              setEnemyExile(prev => [...prev, attacker]);
+              setHistory(prev => [`● EMPATE! Ambos ${attacker.name} e ${defender.name} destruídos!`, ...prev]);
+            }
+          } else { // Defense Mode
+            if (attacker.atk > defender.def) {
+              setField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setPlayerExile(prev => [...prev, defender]);
+              setHistory(prev => [`● QUEBRA DE DEFESA! ${defender.name} foi destruído!`, ...prev]);
+            } else if (attacker.atk < defender.def) {
+              const diff = defender.def - attacker.atk;
+              setEnemyHp(prev => Math.max(0, prev - diff));
+              setHistory(prev => [`● DEFESA SÓLIDA! Malakor sofreu -${diff} de recoil!`, ...prev]);
+            }
           }
-          if (attacker.hp - target.atk <= 0) {
-            setEnemyExile(prev => [...prev, attacker]);
-          }
-
-          setField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
-          setEnemyField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
-          setHistory(prev => [`● COMBATE! ${attacker.name} vs ${target.name}`, ...prev]);
         }
       }
-      await new Promise(r => setTimeout(r, 200)); // Retorno rápido
+      await new Promise(r => setTimeout(r, 200));
     } finally {
       setAttackingInfo(null);
     }
@@ -414,7 +414,7 @@ export default function Arena({ onClose }: ArenaProps) {
 
     setField(prev => {
       const next = [...prev];
-      next[index] = { ...card, canAttack: false };
+      next[index] = { ...card, canAttack: false, position: 'attack' };
       return next;
     });
     
@@ -422,7 +422,7 @@ export default function Arena({ onClose }: ArenaProps) {
     
     if (isCombatantSlot) {
       setPlayedCardThisTurn(true);
-      setHistory(prev => [`● Invocou '${card.name}' na arena`, ...prev]);
+      setHistory(prev => [`● Invocou '${card.name}' em MODO DE ATAQUE`, ...prev]);
     } else if (isBlessingSlot) {
       setHistory(prev => [`● Ativou Benção: '${card.name}'`, ...prev]);
     } else {
@@ -432,77 +432,97 @@ export default function Arena({ onClose }: ArenaProps) {
     setSelectedHandCardId(null);
   };
 
+  const togglePosition = (index: number) => {
+    if (turn !== 'player') return;
+    setField(prev => {
+      const next = [...prev];
+      const card = next[index];
+      if (card) {
+        const newPos = card.position === 'attack' ? 'defense' : 'attack';
+        next[index] = { ...card, position: newPos };
+        setHistory(p => [`● ${card.name} mudou para MODO DE ${newPos === 'attack' ? 'ATAQUE' : 'DEFESA'}`, ...p]);
+      }
+      return next;
+    });
+    setActiveActionMenu(null);
+  };
+
   const handleCombat = async (attackerId: string, targetId: string | 'hero', targetIndex?: number) => {
     try {
-      const attacker = field.find(c => c?.id === attackerId);
+      const attacker = fieldRef.current.find(c => c?.id === attackerId);
       if (turn !== 'player' || !attacker) return;
       
       const isHeroAttack = targetId === 'hero';
 
-      // RULE: First Turn Restriction (Only for Starting Player)
       if (turnCount === 1 && isHeroAttack) {
-        setHistory(prev => ["● Regra: Ataques ao Herói proibidos no Turno 1", ...prev]);
+        setHistory(prev => ["● Regra: LP Protegidos no Turno 1", ...prev]);
         return;
       }
 
-      // RULE: Blockers (Direct Attack only if field is empty)
       if (isHeroAttack) {
         const hasBlockers = enemyField.some(c => c !== null);
         if (hasBlockers) {
-          setHistory(prev => ["● BLOQUEIO: Limpe os combatentes antes de atacar o Herói!", ...prev]);
+          setHistory(prev => ["● BLOQUEIO: Destrua os combatentes antes do ataque direto!", ...prev]);
           return;
         }
       }
 
-      // Calculate attack direction (x offset) based on slot positions
       let xOffset = 0;
       const attackerIndex = field.findIndex(c => c?.id === attackerId);
       if (targetIndex !== undefined) {
         xOffset = (targetIndex - attackerIndex) * 120; 
       } else if (targetId === 'hero') {
-        // Approximate hero center based on layout
         xOffset = ( -2 - attackerIndex) * 120;
       }
 
-      setAttackingInfo({ 
-        id: attackerId, 
-        targetId: targetId, 
-        isOpponent: false,
-        xOffset: xOffset 
-      });
-      await new Promise(resolve => setTimeout(resolve, 400)); 
+      setAttackingInfo({ id: attackerId, targetId, isOpponent: false, xOffset });
+      await new Promise(r => setTimeout(r, 400));
 
       if (isHeroAttack) {
-        const newHp = enemyHp - attacker.atk;
-        setEnemyHp(Math.max(0, newHp));
-        if (newHp <= 0) setGameStatus('victory');
-        setHistory(prev => [`● IMPACTO DIRETO! ${attacker.name} causou ${attacker.atk} ao Herói`, ...prev]);
-        setField(prev => prev.map(c => c?.id === attackerId ? { ...c, canAttack: false } : c));
+        setEnemyHp(prev => Math.max(0, prev - attacker.atk));
+        setHistory(prev => [`● ATAQUE DIRETO! -${attacker.atk} LP de Malakor`, ...prev]);
       } else {
-        const target = enemyField.find(c => c?.id === targetId);
-        if (target) {
-          await new Promise(resolve => setTimeout(resolve, 50)); 
-          
-          // Death check
-          if (target.hp - attacker.atk <= 0) {
-            if (turn === 'player') setEnemyExile(prev => [...prev, target]);
-            else setPlayerExile(prev => [...prev, target]);
+        const defender = enemyFieldRef.current.find(c => c?.id === targetId);
+        if (defender) {
+          if (defender.position === 'attack') {
+            if (attacker.atk > defender.atk) {
+              const diff = attacker.atk - defender.atk;
+              setEnemyHp(prev => Math.max(0, prev - diff));
+              setEnemyField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setEnemyExile(prev => [...prev, defender]);
+              setHistory(prev => [`● VITÓRIA! ${defender.name} destruído. Malakor perdeu ${diff} LP!`, ...prev]);
+            } else if (attacker.atk < defender.atk) {
+              const diff = defender.atk - attacker.atk;
+              setPlayerHp(prev => Math.max(0, prev - diff));
+              setField(prev => prev.map(c => c?.id === attacker.id ? null : c));
+              setPlayerExile(prev => [...prev, attacker]);
+              setHistory(prev => [`● DERROTA! Seu ${attacker.name} destruído. Você perdeu ${diff} LP!`, ...prev]);
+            } else {
+              setField(prev => prev.map(c => c?.id === attacker.id ? null : c));
+              setEnemyField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setPlayerExile(prev => [...prev, attacker]);
+              setEnemyExile(prev => [...prev, defender]);
+              setHistory(prev => [`● ANULAÇÃO! Ambos combatentes destruídos em combate equilibrado!`, ...prev]);
+            }
+          } else { // Defense Mode
+            if (attacker.atk > defender.def) {
+              setEnemyField(prev => prev.map(c => c?.id === defender.id ? null : c));
+              setEnemyExile(prev => [...prev, defender]);
+              setHistory(prev => [`● QUEBRA! A defesa de ${defender.name} foi rompida!`, ...prev]);
+            } else if (attacker.atk < defender.def) {
+              const diff = defender.def - attacker.atk;
+              setPlayerHp(prev => Math.max(0, prev - diff));
+              setHistory(prev => [`● RECOIL! Sua investida falhou. Perdido ${diff} LP!`, ...prev]);
+            }
           }
-          if (attacker.hp - target.atk <= 0) {
-            if (turn === 'player') setPlayerExile(prev => [...prev, attacker]);
-            else setEnemyExile(prev => [...prev, attacker]);
-          }
-
-          setField(prev => prev.map(c => (c?.id === attackerId) ? (c.hp - target.atk <= 0 ? null : { ...c, hp: c.hp - target.atk, canAttack: false }) : c));
-          setEnemyField(prev => prev.map(c => (c?.id === targetId) ? (c.hp - attacker.atk <= 0 ? null : { ...c, hp: c.hp - attacker.atk }) : c));
-          setHistory(prev => [`● COMBATE: ${attacker.name} vs ${target.name}`, ...prev]);
         }
       }
-
-      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      setField(prev => prev.map(c => c?.id === attackerId ? { ...c!, canAttack: false } : c));
+      await new Promise(r => setTimeout(r, 200));
     } finally {
-      setSelectedCardId(null);
       setAttackingInfo(null);
+      setSelectedCardId(null);
     }
   };
 
@@ -713,6 +733,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           animate={{ 
                             opacity: 1, 
                             scale: 1, 
+                            rotate: (enemyField[i]?.stats?.position === 'defense' || enemyField[i]?.position === 'defense') ? 90 : 0,
                             y: (attackingInfo?.id === enemyField[i]?.id) ? 120 : 0,
                             x: (attackingInfo?.id === enemyField[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
                             filter: (attackingInfo?.targetId === enemyField[i]?.id) ? "brightness(2) saturate(2) hue-rotate(-50deg)" : "brightness(1)"
@@ -726,7 +747,7 @@ export default function Arena({ onClose }: ArenaProps) {
                         >
                            <div className="absolute inset-x-1 bottom-1 flex justify-between px-1">
                               <span className="text-[10px] font-black text-red-500">{enemyField[i]?.atk}</span>
-                              <span className="text-[10px] font-black text-emerald-500">{enemyField[i]?.hp}</span>
+                              <span className="text-[10px] font-black text-emerald-500">{enemyField[i]?.def}</span>
                            </div>
                            <button 
                               onClick={() => selectedCardId ? handleCombat(selectedCardId, enemyField[i]!.id, i) : setInspectedCard(enemyField[i]!)}
@@ -780,12 +801,13 @@ export default function Arena({ onClose }: ArenaProps) {
                     >
                       {field[i] ? (
                         <>
-                           {/* Action Menu Loop... */}
                            <AnimatePresence>
                              {activeActionMenu?.index === i && (
                                 <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, y: -8, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="absolute -top-10 inset-x-0 flex justify-center gap-2 z-[60]" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => turnCount !== 1 ? (setSelectedCardId(field[i]!.id), setActiveActionMenu(null)) : (setHistory(p => ["● Regra: Ataques proibidos no Turno 1", ...p]), setActiveActionMenu(null))} className={`w-10 h-10 rounded-full flex items-center justify-center border border-white/20 ${turnCount === 1 ? 'bg-gray-600 opacity-50' : 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]'}`}><Sword className="w-5 h-5 text-white" /></button>
-                                    <button onClick={() => (setHistory(p => [`● ${field[i]!.name} em posição de Defesa`, ...p]), setActiveActionMenu(null))} className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center border border-white/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]"><Shield className="w-5 h-5 text-white" /></button>
+                                    {field[i]?.position === 'attack' && (
+                                      <button onClick={() => (setSelectedCardId(field[i]!.id), setActiveActionMenu(null))} className="w-10 h-10 rounded-full flex items-center justify-center border border-white/20 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]"><Sword className="w-5 h-5 text-white" /></button>
+                                    )}
+                                    <button onClick={() => togglePosition(i)} className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center border border-white/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]"><RefreshCw className="w-5 h-5 text-white" /></button>
                                     <button onClick={() => (setInspectedCard(field[i]!), setActiveActionMenu(null))} className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center border border-white/20 shadow-[0_0_15px_rgba(37,99,235,0.5)]"><Eye className="w-5 h-5 text-white" /></button>
                                 </motion.div>
                              )}
@@ -796,6 +818,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                  key={field[i]?.id} 
                                  layoutId={field[i]?.id} 
                                  animate={{ 
+                                   rotate: field[i]?.position === 'defense' ? 90 : 0,
                                    y: (attackingInfo?.id === field[i]?.id) ? -120 : 0, 
                                    x: (attackingInfo?.id === field[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
                                    filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)" 
@@ -819,7 +842,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                      <div className="absolute inset-0 bg-black/10" />
                                      <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
                                        <span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span>
-                                       <span className="text-[10px] font-black text-emerald-500">{field[i]?.hp}</span>
+                                       <span className="text-[10px] font-black text-emerald-500">{field[i]?.def}</span>
                                      </div>
                                   </div>
                                </motion.div>
