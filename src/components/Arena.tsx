@@ -137,6 +137,12 @@ export default function Arena({ onClose }: ArenaProps) {
   const [isViewingExile, setIsViewingExile] = useState<null | 'player' | 'enemy'>(null);
   const [timeLeft, setTimeLeft] = useState(30);
 
+  const fieldRef = React.useRef(field);
+  const enemyFieldRef = React.useRef(enemyField);
+
+  React.useEffect(() => { fieldRef.current = field; }, [field]);
+  React.useEffect(() => { enemyFieldRef.current = enemyField; }, [enemyField]);
+
   // Turn Timer Logic
   React.useEffect(() => {
     if (gameStatus !== 'playing' || isTransitioning) return;
@@ -238,7 +244,7 @@ export default function Arena({ onClose }: ArenaProps) {
 
   const runOpponentAI = async () => {
     // 1. Play card logic (MORE AGGRESSIVE)
-    const availableSlots = enemyField.slice(0, 5).map((s, i) => s === null ? i : -1).filter(i => i !== -1);
+    const availableSlots = enemyFieldRef.current.slice(0, 5).map((s, i) => s === null ? i : -1).filter(i => i !== -1);
     
     // Regular: play up to 2 cards if board is empty, but Turn 1 only 1
     let maxToPlay = (availableSlots.length > 3 && turnCount > 2) ? 2 : 1;
@@ -266,10 +272,14 @@ export default function Arena({ onClose }: ArenaProps) {
 
     // 2. Attack logic (Restriction: No turn 1 attacks)
     if (turnCount > 1) { 
-      const capableAttackers = enemyField.slice(0, 5).filter((c): c is Card => c !== null);
+      // Find attackers using REF for fresh state
+      const capableAttackers = enemyFieldRef.current.slice(0, 5).filter((c): c is Card => c !== null);
+      
       for (const attacker of capableAttackers) {
-        const playerCardIndex = field.slice(0, 5).findIndex(c => c !== null);
-        const target = playerCardIndex !== -1 ? field[playerCardIndex]!.id : 'hero';
+        // Find target using REF for fresh state INSIDE the loop
+        const currentPlayerField = fieldRef.current.slice(0, 5);
+        const playerCardIndex = currentPlayerField.findIndex(c => c !== null);
+        const target = playerCardIndex !== -1 ? currentPlayerField[playerCardIndex]!.id : 'hero';
         
         await handleOpponentAttack(attacker.id, target);
       }
@@ -305,11 +315,12 @@ export default function Arena({ onClose }: ArenaProps) {
       await new Promise(r => setTimeout(r, 400)); // Impacto
 
       if (targetId === 'hero') {
-        const hasBlockers = field.some(c => c !== null);
+        const hasBlockers = fieldRef.current.slice(0, 5).some(c => c !== null);
         if (hasBlockers) {
           // Rule: AI must clear field if there are defenders
-          const defenderIndex = field.findIndex(c => c !== null);
-          const defender = field[defenderIndex]!;
+          const currentField = fieldRef.current.slice(0, 5);
+          const defenderIndex = currentField.findIndex(c => c !== null);
+          const defender = currentField[defenderIndex]!;
           
           await new Promise(r => setTimeout(r, 50)); 
           // Redirect attack to the first defender
