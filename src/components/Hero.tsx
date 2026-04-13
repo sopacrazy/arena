@@ -28,7 +28,7 @@ export default function Hero({ onPlay }: { onPlay: () => void }) {
           className="mb-8 flex flex-col items-center"
         >
           <img 
-            src="/logo.png" 
+            src="/logo.webp" 
             alt="Arcane Crusade" 
             className="w-full max-w-[400px] h-auto object-contain drop-shadow-[0_0_50px_rgba(0,0,0,0.8)]"
           />
