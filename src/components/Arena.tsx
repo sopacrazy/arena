@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon, Ghost } from 'lucide-react';
+import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon, Ghost, Type } from 'lucide-react';
 
 interface Card {
   id: string;
@@ -222,11 +222,15 @@ export default function Arena({ onClose }: ArenaProps) {
       setHistory(prev => [`● BENÇÃO: '${blessingCard.name}' retornou ao éter (Exílio)`, ...prev]);
     }
 
+    // MTG STYLE: Healing at end of turn
+    setField(prev => prev.map(c => c ? { ...c, hp: c.maxHp, canAttack: true } : null));
+
     setTurn('opponent');
     setPlayedCardThisTurn(false);
     setSelectedCardId(null);
     setActiveActionMenu(null);
     setIsTransitioning("TURNO DO ADVERSÁRIO");
+    setHistory(prev => ["● CURA: Seus combatentes recuperaram a vida!", ...prev]);
     setTimeout(() => setIsTransitioning(null), 1500);
 
     // AI Logic Start
@@ -285,13 +289,13 @@ export default function Arena({ onClose }: ArenaProps) {
       }
     }
 
-    // 3. End Turn (FLUID TRANSITION + RECOVER CARDS)
-    setField(prev => prev.map(c => c ? { ...c, canAttack: true } : null)); 
+    // 3. End Turn (FLUID TRANSITION + RECOVER CARDS & HP)
+    setEnemyField(prev => prev.map(c => c ? { ...c, hp: c.maxHp, canAttack: true } : null)); 
     setTurn('player');
     setTurnCount(prev => prev + 1);
     setPlayedCardThisTurn(false);
     setIsTransitioning("SEU TURNO");
-    setHistory(prev => ["● SEU TURNO: Planeje sua estratégia!", ...prev]);
+    setHistory(prev => ["● SEU TURNO: Oponentes curados. Planeje!", ...prev]);
     drawCard();
     setTimeout(() => setIsTransitioning(null), 1500);
   };
@@ -1059,8 +1063,8 @@ export default function Arena({ onClose }: ArenaProps) {
                       </div>
 
                       <div className="mt-auto pt-4 border-t border-white/5 text-[10px] text-white/20 uppercase tracking-widest flex justify-between">
-                        <span>ID: {inspectedCard.id}</span>
-                        <span>Custo Energético: {inspectedCard.cost}</span>
+                         <span>ID: {inspectedCard.id}</span>
+                         <span>Raridade: {inspectedCard.stars}★</span>
                       </div>
                    </div>
 
@@ -1215,10 +1219,10 @@ export default function Arena({ onClose }: ArenaProps) {
                 </div>
 
                 <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-white/40">
-                   <div className="flex items-center gap-1.5">
-                      <Zap className="w-3 h-3 text-gold" />
-                      <span>Custo: {hoveredCard.cost}</span>
-                   </div>
+                    <div className="flex items-center gap-1.5">
+                       <Type className="w-3 h-3 text-gold" />
+                       <span>Nível: {hoveredCard.type}</span>
+                    </div>
                    <div className="flex items-center gap-1.5">
                       <Trophy className="w-3 h-3 text-gold" />
                       <span>Raridade: {hoveredCard.stars}★</span>
