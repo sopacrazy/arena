@@ -742,7 +742,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           animate={{ 
                             opacity: 1, 
                             scale: 1, 
-                            rotate: (enemyField[i]?.stats?.position === 'defense' || enemyField[i]?.position === 'defense') ? 90 : 0,
+                            rotate: (enemyField[i]?.stats?.position === 'defense' || enemyField[i]?.stats?.isFaceDown || enemyField[i]?.isFaceDown) ? 0 : 0,
                             y: (attackingInfo?.id === enemyField[i]?.id) ? 120 : 0,
                             x: (attackingInfo?.id === enemyField[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
                             filter: (attackingInfo?.targetId === enemyField[i]?.id) ? "brightness(2) saturate(2) hue-rotate(-50deg)" : "brightness(1)"
@@ -833,7 +833,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                  key={field[i]?.id} 
                                  layoutId={field[i]?.id} 
                                  animate={{ 
-                                   rotate: field[i]?.position === 'defense' ? 90 : 0,
+                                   rotate: 0,
                                    y: (attackingInfo?.id === field[i]?.id) ? -120 : 0, 
                                    x: (attackingInfo?.id === field[i]?.id) ? (attackingInfo.xOffset || 0) : 0,
                                    filter: (attackingInfo?.targetId === field[i]?.id) ? "brightness(2) saturate(2) hue-rotate(50deg)" : "brightness(1)" 
@@ -1084,7 +1084,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                <div className="text-xs font-black text-white uppercase tracking-widest">Defesa</div>
                             </div>
                             <div 
-                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 rotate-90 scale-75"
+                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 scale-95"
                               style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
                             />
                             <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Down</div>
