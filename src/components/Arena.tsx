@@ -160,12 +160,22 @@ export default function Arena({ onClose }: ArenaProps) {
   }, [turn, gameStatus, isTransitioning]);
 
   const drawCard = () => {
-    if (deck.length > 0) {
-      const nextCard = deck[0];
-      setDeck(prev => prev.slice(1));
-      setHand(prev => [...prev, nextCard]);
+    setDeck(currentDeck => {
+      if (currentDeck.length === 0) return currentDeck;
+      
+      const nextCard = currentDeck[0];
+      const remainingDeck = currentDeck.slice(1);
+      
+      // Update hand based on the card we just took from the deck
+      setHand(prevHand => {
+        // Double check we aren't adding the same card again if called twice
+        if (prevHand.some(c => c.id === nextCard.id)) return prevHand;
+        return [...prevHand, nextCard];
+      });
+      
       setHistory(prev => [`● Fase de Compra: +1 carta`, ...prev]);
-    }
+      return remainingDeck;
+    });
   };
 
   const resetGame = () => {
@@ -193,6 +203,19 @@ export default function Arena({ onClose }: ArenaProps) {
 
   const endTurn = async () => {
     if (turn !== 'player') return;
+
+    // RULE 9.1: Blessing goes to Exile at end of turn
+    if (field[5]) {
+      const blessingCard = field[5];
+      setPlayerExile(prev => [...prev, blessingCard]);
+      setField(prev => {
+        const next = [...prev];
+        next[5] = null;
+        return next;
+      });
+      setHistory(prev => [`● BENÇÃO: '${blessingCard.name}' retornou ao éter (Exílio)`, ...prev]);
+    }
+
     setTurn('opponent');
     setPlayedCardThisTurn(false);
     setSelectedCardId(null);
@@ -326,32 +349,52 @@ export default function Arena({ onClose }: ArenaProps) {
   };
 
   const playCard = (card: Card, index: number) => {
-    if (turn !== 'player') return;
-    if (playedCardThisTurn) {
+    if (turn !== 'player' || index === undefined) return;
+
+    // Determine target area
+    const isCombatantSlot = index >= 0 && index <= 4;
+    const isBlessingSlot = index === 5;
+    const isReactionSlot = index >= 6 && index <= 8;
+
+    // RULE 1: Summon Limit - Max 1 combatant per turn
+    if (isCombatantSlot && playedCardThisTurn) {
       setHistory(prev => ["● Regra: Max 1 combatente por turno!", ...prev]);
       return;
     }
 
-    if (index === undefined || index < 0 || index > 4) {
-       // Automatic find for simple plays if index not provided
-       const emptyIndex = field.findIndex((s, i) => s === null && i < 5);
-       if (emptyIndex === -1) {
-         setHistory(prev => ["● Campo cheio! Escolha um slot para substituir.", ...prev]);
-         return;
-       }
-       index = emptyIndex;
-    }
-
     const existingCard = field[index];
-    if (existingCard) {
-      const canSubstitute = card.atk > existingCard.atk || card.stars > existingCard.stars;
-      if (canSubstitute) {
-        setHistory(prev => [`● SUBSTITUIÇÃO! ${card.name} substituiu ${existingCard.name}`, ...prev]);
+
+    // RULE 8: Level & Substitution Logic (Scale Only for now)
+    if (isCombatantSlot) {
+      const levels = ['Neutro', 'Bronze', 'Prata', 'Ouro'];
+      const cardTypeLabel = card.type || 'Neutro';
+      const cardLevelIdx = levels.indexOf(cardTypeLabel);
+      const existingLevelIdx = existingCard ? levels.indexOf(existingCard.type || 'Neutro') : -1;
+
+      // Neutro units can be played freely on empty slots
+      if (cardTypeLabel === 'Neutro' && !existingCard) {
+        // Normal Summon
+      } 
+      // Substitution Scale (Regra 8.1)
+      else if (existingCard && cardLevelIdx === existingLevelIdx + 1) {
+        setHistory(prev => [`● ESCALA: ${card.name} (${cardTypeLabel}) substituiu ${existingCard.name}`, ...prev]);
         setPlayerExile(prev => [...prev, existingCard]);
-      } else {
-        setHistory(prev => [`● BLOQUEADO: Sem poder para substituir ${existingCard.name}`, ...prev]);
+      }
+      // Level Block
+      else {
+        if (!existingCard) {
+          setHistory(prev => [`● BLOQUEADO: ${card.name} (${cardTypeLabel}) exige uma substituição de Escala.`, ...prev]);
+        } else {
+          setHistory(prev => [`● ERRO DE NÍVEL: ${cardTypeLabel} não pode substituir ${existingCard.type || 'Neutro'} diretamente.`, ...prev]);
+        }
         return;
       }
+    }
+
+    // Handle Blessing specific rules (max 1 activated per turn)
+    if (isBlessingSlot && existingCard) {
+      setHistory(prev => ["● Espaço de Benção ocupado!", ...prev]);
+      return;
     }
 
     setField(prev => {
@@ -359,10 +402,19 @@ export default function Arena({ onClose }: ArenaProps) {
       next[index] = { ...card, canAttack: false };
       return next;
     });
+    
     setHand(prev => prev.filter(c => c.id !== card.id));
-    setPlayedCardThisTurn(true);
+    
+    if (isCombatantSlot) {
+      setPlayedCardThisTurn(true);
+      setHistory(prev => [`● Invocou '${card.name}' na arena`, ...prev]);
+    } else if (isBlessingSlot) {
+      setHistory(prev => [`● Ativou Benção: '${card.name}'`, ...prev]);
+    } else {
+      setHistory(prev => [`● Preparou Reação no campo`, ...prev]);
+    }
+
     setSelectedHandCardId(null);
-    setHistory(prev => [`● Jogou '${card.name}' na arena`, ...prev]);
   };
 
   const handleCombat = async (attackerId: string, targetId: string | 'hero', targetIndex?: number) => {
@@ -1014,7 +1066,7 @@ export default function Arena({ onClose }: ArenaProps) {
                       <div className="p-6 bg-emerald-950/20 border-2 border-emerald-500/30 flex flex-col items-center justify-center gap-1 group transition-all hover:bg-emerald-500/10">
                          <div className="flex items-center gap-2 mb-2">
                             <Heart className="w-6 h-6 text-emerald-500" />
-                            <span className="text-gray-400 font-black text-xs uppercase">Defesa</span>
+                            <span className="text-gray-400 font-black text-xs uppercase">Vida</span>
                          </div>
                          <span className="text-5xl font-black text-white drop-shadow-lg">{inspectedCard.hp}/{inspectedCard.maxHp}</span>
                       </div>
@@ -1125,7 +1177,7 @@ export default function Arena({ onClose }: ArenaProps) {
                       <span className="text-4xl font-black text-white italic">{hoveredCard.atk}</span>
                    </div>
                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-black text-emerald-500 uppercase leading-none">Defesa</span>
+                      <span className="text-xs font-black text-emerald-500 uppercase leading-none">Vida</span>
                       <span className="text-4xl font-black text-white italic">{hoveredCard.hp}/{hoveredCard.maxHp}</span>
                    </div>
                 </div>

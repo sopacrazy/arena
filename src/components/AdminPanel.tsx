@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, Trash2, Edit2, Shield, Sword, Type, FileText, X, Save, 
   Image as ImageIcon, Lock, User, Sparkles, ChevronRight, 
-  Search, Wand2, Gavel
+  Search, Wand2, Gavel, Heart
 } from 'lucide-react';
 
 interface Card {
@@ -312,7 +312,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                  </div>
                                  <div className="flex flex-col items-end">
                                     <span className="text-[16px] font-black text-emerald-500 flex items-center gap-2">
-                                      {formData.hp} <Shield className="w-4 h-4" />
+                                      {formData.hp} <Heart className="w-4 h-4" />
                                     </span>
                                  </div>
                               </div>
