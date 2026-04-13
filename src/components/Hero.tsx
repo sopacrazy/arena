@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Play, Tv } from 'lucide-react';
 
-export default function Hero() {
+export default function Hero({ onPlay }: { onPlay: () => void }) {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
       {/* Cinematic Background Image */}
@@ -45,7 +45,10 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.5 }}
           className="flex flex-col sm:flex-row items-center gap-6 mb-48 lg:mb-56"
         >
-          <button className="group relative px-12 py-4 bg-gradient-to-b from-yellow-700 to-yellow-900 rounded-lg overflow-hidden border border-yellow-500/50 shadow-[0_10px_30px_-10px_rgba(180,130,0,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer">
+          <button 
+            onClick={onPlay}
+            className="group relative px-12 py-4 bg-gradient-to-b from-yellow-700 to-yellow-900 rounded-lg overflow-hidden border border-yellow-500/50 shadow-[0_10px_30px_-10px_rgba(180,130,0,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          >
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-transparent transition-all" />
             <span className="relative flex items-center gap-2 text-white font-bold text-lg uppercase tracking-widest">
               Jogar Agora

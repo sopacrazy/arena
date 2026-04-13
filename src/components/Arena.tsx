@@ -1051,44 +1051,63 @@ export default function Arena({ onClose }: ArenaProps) {
                   initial={{ opacity: 0, scale: 0.9, y: 50 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                  className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+                  onClick={() => {
+                    setSummoningConfig(null);
+                    setSelectedHandCardId(null);
+                  }}
+                  className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
                 >
-                   <motion.div className="flex flex-col items-center gap-6 p-8 bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)]">
+                   <motion.div 
+                     onClick={(e) => e.stopPropagation()}
+                     className="flex flex-col items-center gap-6 p-8 bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)] cursor-default"
+                   >
                       <div className="text-center space-y-2">
                         <h3 className="text-xl font-black text-gold uppercase tracking-[0.2em] italic">Preparar Invocação</h3>
                         <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Escolha a posição de batalha para "{summoningConfig.card.name}"</p>
                       </div>
 
-                      <div className="flex gap-8">
-                         <button 
+                      <div className="flex gap-12">
+                         {/* MODO ATAQUE */}
+                         <div 
                            onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'attack' })}
-                           className="group relative w-40 h-56 rounded-2xl border-2 border-white/10 bg-white/5 hover:border-red-500 hover:bg-red-500/10 transition-all flex flex-col items-center justify-between p-4 overflow-hidden"
+                           className="group flex flex-col items-center gap-4 cursor-pointer"
                          >
-                            <div className="relative z-10 text-center space-y-1">
-                               <Sword className="w-8 h-8 mx-auto text-white/20 group-hover:text-red-500" />
-                               <div className="text-xs font-black text-white uppercase tracking-widest">Ataque</div>
+                            <div className="text-center space-y-1">
+                               <Sword className="w-10 h-10 mx-auto text-white/20 group-hover:text-red-500 transition-all duration-300" />
+                               <div className="text-sm font-black text-white/40 group-hover:text-white uppercase tracking-[0.2em] transition-all duration-300">Ataque</div>
                             </div>
-                            <div 
-                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100"
-                              style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
-                            />
-                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Up</div>
-                         </button>
+                            
+                            <div className="relative w-56 h-80 rounded-2xl border-2 border-white/10 bg-black/40 group-hover:border-red-500 group-hover:shadow-[0_0_40px_rgba(239,68,68,0.4)] transition-all duration-500 overflow-hidden">
+                               <div 
+                                 className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-all duration-700 grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-110"
+                                 style={{ backgroundImage: `url("${summoningConfig.card.image || '/fundo.png'}")` }}
+                               />
+                               <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end justify-center pb-4">
+                                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Face-Up</span>
+                               </div>
+                            </div>
+                         </div>
 
-                         <button 
+                         {/* MODO DEFESA */}
+                         <div 
                            onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'defense' })}
-                           className="group relative w-40 h-56 rounded-2xl border-2 border-white/10 bg-white/5 hover:border-emerald-500 hover:bg-emerald-500/10 transition-all flex flex-col items-center justify-between p-4 overflow-hidden"
+                           className="group flex flex-col items-center gap-4 cursor-pointer"
                          >
-                            <div className="relative z-10 text-center space-y-1">
-                               <Shield className="w-8 h-8 mx-auto text-white/20 group-hover:text-emerald-500" />
-                               <div className="text-xs font-black text-white uppercase tracking-widest">Defesa</div>
+                            <div className="text-center space-y-1">
+                               <Shield className="w-10 h-10 mx-auto text-white/20 group-hover:text-emerald-500 transition-all duration-300" />
+                               <div className="text-sm font-black text-white/40 group-hover:text-white uppercase tracking-[0.2em] transition-all duration-300">Defesa</div>
                             </div>
-                            <div 
-                              className="w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 scale-95"
-                              style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
-                            />
-                            <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Down</div>
-                         </button>
+                            
+                            <div className="relative w-56 h-80 rounded-2xl border-2 border-white/10 bg-black/40 group-hover:border-emerald-500 group-hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] transition-all duration-500 overflow-hidden">
+                               <div 
+                                 className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-all duration-700 grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-110"
+                                 style={{ backgroundImage: `url("${summoningConfig.card.image || '/fundo.png'}")` }}
+                               />
+                               <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end justify-center pb-4">
+                                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Face-Down</span>
+                               </div>
+                            </div>
+                         </div>
                       </div>
 
                       <div className="text-[10px] font-black text-gold/60 animate-pulse tracking-[0.3em] uppercase">Selecione uma posição para liberar o campo</div>

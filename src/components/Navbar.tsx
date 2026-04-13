@@ -13,10 +13,10 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
   return (
     <nav className="fixed w-full z-50 top-0 transition-all duration-500 bg-transparent hover:bg-black/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24">
+        <div className="grid grid-cols-3 items-center h-24">
           
-          {/* Logo Area */}
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.location.reload()}>
+          {/* Logo Area (Left) */}
+          <div className="flex items-center justify-start gap-3 group cursor-pointer" onClick={() => window.location.reload()}>
             <img 
               src="/logo.png" 
               alt="Arcane Crusade" 
@@ -24,8 +24,8 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
             />
           </div>
           
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-10">
+          {/* Desktop Navigation (Center) */}
+          <div className="hidden lg:flex items-center justify-center space-x-10">
             {[
               { en: 'Announcements', pt: 'Anúncios' },
               { en: 'Overview', pt: 'Visão Geral' },
@@ -36,7 +36,7 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
               <a 
                 key={item.en} 
                 href={`#${item.en.toLowerCase()}`} 
-                className="text-[11px] font-bold text-white/70 hover:text-gold transition-all tracking-[0.2em] uppercase relative group"
+                className="text-[11px] font-bold text-white/70 hover:text-gold transition-all tracking-[0.2em] uppercase relative group whitespace-nowrap"
               >
                 {item.pt}
                 <span className="absolute -bottom-1 left-0 w-0 h-px bg-gold transition-all group-hover:w-full" />
@@ -44,21 +44,15 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
             ))}
             <button 
                 onClick={onAdminClick}
-                className="text-[11px] font-black text-gold/60 hover:text-gold transition-all tracking-[0.2em] uppercase cursor-pointer"
+                className="text-[11px] font-black text-gold/60 hover:text-gold transition-all tracking-[0.2em] uppercase cursor-pointer whitespace-nowrap"
               >
                 Forjar
             </button>
           </div>
 
-          {/* Action Button */}
-          <div className="hidden md:block">
-            <button 
-              onClick={onArenaClick}
-              className="relative px-8 py-2 border border-gold/50 text-gold font-bold text-xs tracking-[0.2em] uppercase overflow-hidden group cursor-pointer bg-black/40 backdrop-blur-sm"
-            >
-              <div className="absolute inset-0 bg-gold translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-              <span className="relative z-10 group-hover:text-dark-bg transition-colors">Jogar Agora</span>
-            </button>
+          {/* Empty Space / Future Actions (Right) */}
+          <div className="hidden lg:flex items-center justify-end">
+             {/* Reserved for profile/login button if needed later */}
           </div>
 
           {/* Mobile Toggle */}
@@ -94,15 +88,6 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
                 {item.pt}
               </a>
             ))}
-            <button 
-              onClick={() => {
-                onArenaClick();
-                setIsOpen(false);
-              }}
-              className="w-full mt-6 bg-gold text-dark-bg font-bold py-4 text-xs tracking-[0.3em] uppercase transition-all active:scale-95 shadow-[0_0_20px_rgba(255,215,0,0.3)]"
-            >
-              Jogar Agora
-            </button>
           </div>
         </motion.div>
       )}
