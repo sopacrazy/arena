@@ -7,7 +7,7 @@ export default function Hero({ onPlay }: { onPlay: () => void }) {
       {/* Cinematic Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="/rpg_landing_background_1775958332750.png" 
+          src="/background.webp" 
           alt="RPG Background" 
           className="w-full h-full object-cover object-top transition-all duration-700"
           draggable="false"

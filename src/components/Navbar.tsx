@@ -18,7 +18,7 @@ export default function Navbar({ onArenaClick, onAdminClick }: NavbarProps) {
           {/* Logo Area (Left) */}
           <div className="flex items-center justify-start gap-3 group cursor-pointer" onClick={() => window.location.reload()}>
             <img 
-              src="/logo.png" 
+              src="/logo.webp" 
               alt="Arcane Crusade" 
               className="h-9 w-auto object-contain transition-transform group-hover:scale-110 duration-300" 
             />

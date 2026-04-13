@@ -20,25 +20,25 @@ interface Card {
 // Catalog base for game cards from 'RECK 1'
 const CARD_CATALOG = {
   neutro: [
-    { name: "Recruta 06", img: "/RECK 1/NIVEL NEUTRO/06 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Patrulheiro 11", img: "/RECK 1/NIVEL NEUTRO/11 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Sentinela 43", img: "/RECK 1/NIVEL NEUTRO/43 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Aldeão 49", img: "/RECK 1/NIVEL NEUTRO/49 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Militante 50", img: "/RECK 1/NIVEL NEUTRO/50 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Guarda 51", img: "/RECK 1/NIVEL NEUTRO/51 - Copia - Copia - Copia - Copia - Copia - Copia.png" },
-    { name: "Vigilante 53", img: "/RECK 1/NIVEL NEUTRO/53 - Copia - Copia - Copia.png" },
-    { name: "Soldado 60", img: "/RECK 1/NIVEL NEUTRO/60.png" },
-    { name: "Mercenário 67", img: "/RECK 1/NIVEL NEUTRO/67 - Copia - Copia.png" },
-    { name: "Andarilho", img: "/RECK 1/NIVEL NEUTRO/Design sem nome (10).png" },
+    { name: "Recruta 06", img: "/RECK 1/NIVEL NEUTRO/06 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Patrulheiro 11", img: "/RECK 1/NIVEL NEUTRO/11 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Sentinela 43", img: "/RECK 1/NIVEL NEUTRO/43 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Aldeão 49", img: "/RECK 1/NIVEL NEUTRO/49 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Militante 50", img: "/RECK 1/NIVEL NEUTRO/50 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Guarda 51", img: "/RECK 1/NIVEL NEUTRO/51 - Copia - Copia - Copia - Copia - Copia - Copia.webp" },
+    { name: "Vigilante 53", img: "/RECK 1/NIVEL NEUTRO/53 - Copia - Copia - Copia.webp" },
+    { name: "Soldado 60", img: "/RECK 1/NIVEL NEUTRO/60.webp" },
+    { name: "Mercenário 67", img: "/RECK 1/NIVEL NEUTRO/67 - Copia - Copia.webp" },
+    { name: "Andarilho", img: "/RECK 1/NIVEL NEUTRO/Design sem nome (10).webp" },
   ],
   prata: [
-    { name: "Caelan", img: "/RECK 1/PRATA/Caelan, Lâmina do Juramento.png" },
-    { name: "Fargan", img: "/RECK 1/PRATA/Fargan, Lâmina do Caminho Estreito (1).png" },
-    { name: "Raskel", img: "/RECK 1/PRATA/_Raskel, Sangue da Campanha.png" },
+    { name: "Caelan", img: "/RECK 1/PRATA/Caelan, Lâmina do Juramento.webp" },
+    { name: "Fargan", img: "/RECK 1/PRATA/Fargan, Lâmina do Caminho Estreito (1).webp" },
+    { name: "Raskel", img: "/RECK 1/PRATA/_Raskel, Sangue da Campanha.webp" },
   ],
   ouro: [
-    { name: "Aldren Veterano", img: "/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).png" },
-    { name: "Iskand Sobrevivente", img: "/RECK 1/OURO/Iskand, Sobrevivente do Campo Vermelho.png" },
+    { name: "Aldren Veterano", img: "/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).webp" },
+    { name: "Iskand Sobrevivente", img: "/RECK 1/OURO/Iskand, Sobrevivente do Campo Vermelho.webp" },
   ]
 };
 
@@ -547,7 +547,7 @@ export default function Arena({ onClose }: ArenaProps) {
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center"
-        style={{ backgroundImage: 'url("/arena.png")' }}
+        style={{ backgroundImage: 'url("/arena.webp")' }}
       >
         <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px]" />
       </div>
@@ -626,7 +626,7 @@ export default function Arena({ onClose }: ArenaProps) {
           style={{ cursor: selectedCardId ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
         >
            <div className="w-10 h-10 rounded-xl border border-red-500/30 p-0.5 overflow-hidden bg-black shadow-[0_0_15px_rgba(239,68,68,0.1)]">
-              <img src="/enemy_avatar.png" className="w-full h-full object-cover rounded-lg grayscale hover:grayscale-0 transition-all" />
+              <img src="/enemy_avatar.webp" className="w-full h-full object-cover rounded-lg grayscale hover:grayscale-0 transition-all" />
            </div>
            <div className="space-y-1">
               <div className="text-[10px] font-black text-red-500 uppercase tracking-wider">Malakor</div>
@@ -652,7 +652,7 @@ export default function Arena({ onClose }: ArenaProps) {
                   style={{ rotate: (i - Math.floor(enemyHandCount/2)) * -3 }}
                   className="w-14 h-20 rounded-lg border border-white/10 shadow-xl bg-cover bg-center bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden"
                 >
-                  <div className="absolute inset-0 bg-[url('/fundo.png')] bg-cover opacity-80" />
+                  <div className="absolute inset-0 bg-[url('/fundo.webp')] bg-cover opacity-80" />
                   <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
                   <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center bg-black/20">
                     <div className="w-4 h-4 rounded-full bg-red-500/10 animate-pulse" />
@@ -753,7 +753,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           onMouseLeave={() => setHoveredCard(null)}
                           className={`w-full h-full relative bg-contain bg-center bg-no-repeat transition-all ${selectedCardId ? 'ring-2 ring-red-500 group-hover:ring-offset-2 hover:scale-105' : ''}`} 
                           style={{ 
-                            backgroundImage: (enemyField[i]?.isFaceDown) ? 'url("/fundo.png")' : `url("${enemyField[i]?.image || '/fundo.png'}")` 
+                            backgroundImage: (enemyField[i]?.isFaceDown) ? 'url("/fundo.webp")' : `url("${enemyField[i]?.image || '/fundo.webp'}")` 
                           }}
                         >
                            <div className="absolute inset-x-1 bottom-1 flex justify-between px-1">
@@ -855,7 +855,7 @@ export default function Arena({ onClose }: ArenaProps) {
                                >
                                    <div 
                                      className="relative w-full h-full bg-contain bg-center bg-no-repeat" 
-                                     style={{ backgroundImage: field[i]?.isFaceDown ? 'url("/fundo.png")' : `url("${field[i]?.image}")` }}
+                                     style={{ backgroundImage: field[i]?.isFaceDown ? 'url("/fundo.webp")' : `url("${field[i]?.image}")` }}
                                    >
                                       <div className={`absolute inset-0 ${field[i]?.isFaceDown ? 'bg-black/20' : 'bg-black/10'}`} />
                                       {!field[i]?.isFaceDown && (
@@ -935,7 +935,7 @@ export default function Arena({ onClose }: ArenaProps) {
                <motion.div 
                  layoutId="game-deck"
                  className="relative w-22 h-30 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl flex items-center justify-center overflow-hidden transition-all group-hover:scale-105 group-hover:border-white/40 cursor-pointer"
-                 style={{ backgroundImage: 'url("/fundo.png")' }}
+                 style={{ backgroundImage: 'url("/fundo.webp")' }}
                >
                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                </motion.div>
@@ -957,7 +957,7 @@ export default function Arena({ onClose }: ArenaProps) {
               style={{ cursor: selectedCardId ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m14.5 17.5-11.5-11.5v-3h3l11.5 11.5'/%3E%3Cline x1='13' y1='19' x2='19' y2='13'/%3E%3Cline x1='16' y1='16' x2='20' y2='20'/%3E%3C/svg%3E"), crosshair` : 'pointer' }}
             >
                <div className="w-10 h-10 rounded-xl border border-gold/30 p-0.5 overflow-hidden bg-black">
-                  <img src="/hero_avatar.png" className="w-full h-full object-cover rounded-lg" />
+                  <img src="/hero_avatar.webp" className="w-full h-full object-cover rounded-lg" />
                </div>
                <div className="space-y-1">
                   <div className="text-[10px] font-black text-white uppercase tracking-wider">Aeliana Solari</div>
@@ -1025,7 +1025,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           onMouseEnter={() => setHoveredCard(card)}
                                  onMouseLeave={() => setHoveredCard(null)}
                                  className="w-full h-full overflow-visible relative bg-contain bg-center bg-no-repeat"
-                                 style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.png")' }}
+                                 style={{ backgroundImage: card.image ? `url("${card.image}")` : 'url("/fundo.webp")' }}
                         >
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/60" />
                           {!card.image && (
@@ -1080,7 +1080,7 @@ export default function Arena({ onClose }: ArenaProps) {
                             <div className="relative w-56 h-80 rounded-2xl border-2 border-white/10 bg-black/40 group-hover:border-red-500 group-hover:shadow-[0_0_40px_rgba(239,68,68,0.4)] transition-all duration-500 overflow-hidden">
                                <div 
                                  className="absolute inset-0 bg-contain bg-center bg-no-repeat transition-all duration-700 grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-110"
-                                 style={{ backgroundImage: `url("${summoningConfig.card.image || '/fundo.png'}")` }}
+                                 style={{ backgroundImage: `url("${summoningConfig.card.image || '/fundo.webp'}")` }}
                                />
                                <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end justify-center pb-4">
                                   <span className="text-[10px] font-black text-white uppercase tracking-widest">Face-Up</span>

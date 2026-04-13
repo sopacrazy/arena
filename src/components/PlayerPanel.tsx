@@ -50,7 +50,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
       {/* Sidebar Left */}
       <aside className="w-64 border-r border-white/5 bg-[#0a0a0c] flex flex-col pt-8 pb-4">
         <div className="px-6 mb-10">
-          <img src="/logo.png" alt="Logo" className="w-40 h-auto grayscale brightness-200" />
+          <img src="/logo.webp" alt="Logo" className="w-40 h-auto grayscale brightness-200" />
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
@@ -123,7 +123,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/50 to-gold/10 p-[1px]">
                   <div className="w-full h-full rounded-[10px] overflow-hidden bg-black">
-                    <img src="/hero_avatar.png" className="w-full h-full object-cover" />
+                    <img src="/hero_avatar.webp" className="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0a0a0c] shadow-[0_0_8px_#10b981]" />
@@ -139,7 +139,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
             <div className="p-10 space-y-10">
               {/* Main Hero Banner */}
               <div className="relative group rounded-[2.5rem] overflow-hidden border border-white/5 aspect-[21/9] shrink-0">
-                 <img src="/arena.png" className="w-full h-full object-cover grayscale brightness-50 group-hover:scale-105 transition-all duration-1000" />
+                 <img src="/arena.webp" className="w-full h-full object-cover grayscale brightness-50 group-hover:scale-105 transition-all duration-1000" />
                  <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
                  
                  <div className="absolute inset-0 flex flex-col justify-center px-16 max-w-2xl gap-4">
@@ -195,7 +195,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
                     className="group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] cursor-pointer"
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                    <img src="/battle_preview.png" className="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-700" alt="Duelo Ranqueado" />
+                    <img src="/battle_preview.webp" className="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-700" alt="Duelo Ranqueado" />
                     
                     <div className="absolute inset-x-8 bottom-8 z-20 space-y-2">
                        <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
                   {/* Game Card 2 */}
                   <div className="group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] cursor-not-allowed opacity-60">
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                    <img src="/boss_raid.png" className="w-full h-full object-cover opacity-40 filter blur-sm group-hover:blur-0 transition-all duration-700" alt="Chefe de Raide" />
+                    <img src="/boss_raid.webp" className="w-full h-full object-cover opacity-40 filter blur-sm group-hover:blur-0 transition-all duration-700" alt="Chefe de Raide" />
                     
                     <div className="absolute inset-x-8 bottom-8 z-20 space-y-2">
                        <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
                    >
                       {/* Background Image (Same style as modes) */}
                       <div className="absolute inset-0 z-0">
-                         <img src="/reward_card.png" className="w-full h-full object-cover opacity-20 grayscale group-hover:opacity-40 group-hover:scale-110 transition-all duration-700" alt={item.label} />
+                         <img src="/reward_card.webp" className="w-full h-full object-cover opacity-20 grayscale group-hover:opacity-40 group-hover:scale-110 transition-all duration-700" alt={item.label} />
                          <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent`} />
                       </div>
                       
@@ -314,18 +314,18 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
          {/* Chat Messages */}
          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
             {[
-              { user: 'Wingwon', msg: 'Alguém para o boss lvl 40?', avatar: '/witch.png', rank: 'Mestre' },
-              { user: 'StarLord', msg: 'A nova carta de Ouro é insana!', avatar: '/Warlord.png', rank: 'Elite' },
-              { user: 'AnchovyKing', msg: 'Quantos de gold custa o pack?', avatar: '/Guerreiro_Orc.png', rank: 'Novato' },
-              { user: 'You', msg: 'Fala pessoal! Bora uma partida hoje?', avatar: '/hero_avatar.png', rank: 'Combatente', isMe: true },
-              { user: 'Lucian', msg: 'Alguém trocando cartas de fogo?', avatar: '/Rato_Esquelético.png', rank: 'Lenda' },
-              { user: 'Valkyrie', msg: 'Acabei de dropar o Dragão Eterno!!!', avatar: '/witch.png', rank: 'Mestre' },
-              { user: 'DarkSlayer', msg: 'Vende-se conta lvl 80. DM.', avatar: '/enemy_avatar.png', rank: 'Elite' },
+              { user: 'Wingwon', msg: 'Alguém para o boss lvl 40?', avatar: '/witch.webp', rank: 'Mestre' },
+              { user: 'StarLord', msg: 'A nova carta de Ouro é insana!', avatar: '/Warlord.webp', rank: 'Elite' },
+              { user: 'AnchovyKing', msg: 'Quantos de gold custa o pack?', avatar: '/Guerreiro_Orc.webp', rank: 'Novato' },
+              { user: 'You', msg: 'Fala pessoal! Bora uma partida hoje?', avatar: '/hero_avatar.webp', rank: 'Combatente', isMe: true },
+              { user: 'Lucian', msg: 'Alguém trocando cartas de fogo?', avatar: '/Rato_Esquelético.webp', rank: 'Lenda' },
+              { user: 'Valkyrie', msg: 'Acabei de dropar o Dragão Eterno!!!', avatar: '/witch.webp', rank: 'Mestre' },
+              { user: 'DarkSlayer', msg: 'Vende-se conta lvl 80. DM.', avatar: '/enemy_avatar.webp', rank: 'Elite' },
             ].map((chat, i) => (
               <div key={i} className={`flex gap-3 group ${chat.isMe ? 'opacity-100' : 'opacity-80 hover:opacity-100'} transition-opacity`}>
                  <div className="relative shrink-0">
                     <div className="w-9 h-9 rounded-lg overflow-hidden bg-white/5 border border-white/10 group-hover:border-gold/30 transition-all">
-                       <img src={chat.avatar || '/hero_avatar.png'} className="w-full h-full object-cover" />
+                       <img src={chat.avatar || '/hero_avatar.webp'} className="w-full h-full object-cover" />
                     </div>
                     {chat.rank === 'Lenda' && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-[#0a0a0c] flex items-center justify-center"><Skull className="w-2 h-2 text-white" /></div>}
                  </div>
@@ -359,17 +359,17 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
 }
 function RankingsView() {
   const topPlayers = [
-    { rank: 2, name: 'Team Liquid ID', stars: '2,840', avatar: '/witch.png', color: 'border-slate-400', glow: 'shadow-slate-400/20' },
-    { rank: 1, name: 'Selangor Red Giants', stars: '3,150', avatar: '/hero_avatar.png', color: 'border-gold', glow: 'shadow-gold/40' },
-    { rank: 3, name: 'Falcons AP.Bren', stars: '2,710', avatar: '/enemy_avatar.png', color: 'border-amber-700', glow: 'shadow-amber-700/20' },
+    { rank: 2, name: 'Team Liquid ID', stars: '2,840', avatar: '/witch.webp', color: 'border-slate-400', glow: 'shadow-slate-400/20' },
+    { rank: 1, name: 'Selangor Red Giants', stars: '3,150', avatar: '/hero_avatar.webp', color: 'border-gold', glow: 'shadow-gold/40' },
+    { rank: 3, name: 'Falcons AP.Bren', stars: '2,710', avatar: '/enemy_avatar.webp', color: 'border-amber-700', glow: 'shadow-amber-700/20' },
   ];
 
   const leaderboard = [
-    { rank: '#04', name: 'Kairi', tier: 'Imortal Mítico', winrate: '78.5%', stars: '2,150', avatar: '/Warlord.png', trend: 'up' },
-    { rank: '#05', name: 'Fnatic ONIC', tier: 'Imortal Mítico', winrate: '74%', stars: '2,050', avatar: '/Guerreiro_Orc.png', trend: 'up' },
-    { rank: '#06', name: 'EVOS Glory', tier: 'Imortal Mítico', winrate: '71%', stars: '1,980', avatar: '/witch.png', trend: 'down' },
-    { rank: '#07', name: 'RRQ Hoshi', tier: 'Imortal Mítico', winrate: '69%', stars: '1,890', avatar: '/hero_avatar.png', trend: 'up' },
-    { rank: '#08', name: 'Blacklist Intl', tier: 'Imortal Mítico', winrate: '67.88%', stars: '1,810', avatar: '/enemy_avatar.png', trend: 'neutral' },
+    { rank: '#04', name: 'Kairi', tier: 'Imortal Mítico', winrate: '78.5%', stars: '2,150', avatar: '/Warlord.webp', trend: 'up' },
+    { rank: '#05', name: 'Fnatic ONIC', tier: 'Imortal Mítico', winrate: '74%', stars: '2,050', avatar: '/Guerreiro_Orc.webp', trend: 'up' },
+    { rank: '#06', name: 'EVOS Glory', tier: 'Imortal Mítico', winrate: '71%', stars: '1,980', avatar: '/witch.webp', trend: 'down' },
+    { rank: '#07', name: 'RRQ Hoshi', tier: 'Imortal Mítico', winrate: '69%', stars: '1,890', avatar: '/hero_avatar.webp', trend: 'up' },
+    { rank: '#08', name: 'Blacklist Intl', tier: 'Imortal Mítico', winrate: '67.88%', stars: '1,810', avatar: '/enemy_avatar.webp', trend: 'neutral' },
   ];
 
   return (

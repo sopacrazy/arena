@@ -27,8 +27,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [loginError, setLoginError] = useState(false);
 
   const [cards, setCards] = useState<Card[]>([
-    { id: '1', name: 'Guerreiro de Elite', type: 'Prata', atk: 5, hp: 6, desc: 'Um bravo defensor do reino.', color: 'silver', image: '/RECK 1/PRATA/Caelan, Lâmina do Juramento.png' },
-    { id: '2', name: 'Dragão Arcano', type: 'Ouro', atk: 9, hp: 10, desc: 'Uma criatura mística devastadora.', color: 'yellow', image: '/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).png' },
+    { id: '1', name: 'Guerreiro de Elite', type: 'Prata', atk: 5, hp: 6, desc: 'Um bravo defensor do reino.', color: 'silver', image: '/RECK 1/PRATA/Caelan, Lâmina do Juramento.webp' },
+    { id: '2', name: 'Dragão Arcano', type: 'Ouro', atk: 9, hp: 10, desc: 'Uma criatura mística devastadora.', color: 'yellow', image: '/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).webp' },
   ]);
 
   const [isAdding, setIsAdding] = useState(false);
@@ -41,7 +41,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     hp: 1,
     desc: '',
     type: 'Neutro',
-    image: '/fundo.png'
+    image: '/fundo.webp'
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -78,7 +78,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', atk: 1, hp: 1, desc: '', type: 'Neutro', image: '/fundo.png' });
+    setFormData({ name: '', atk: 1, hp: 1, desc: '', type: 'Neutro', image: '/fundo.webp' });
     setIsAdding(false);
     setEditingCard(null);
   };
