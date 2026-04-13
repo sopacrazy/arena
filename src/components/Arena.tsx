@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Shield, Sword, Zap, Heart, Trophy, X, Eye, Search, History, Skull, RefreshCw, Moon, Ghost, Type } from 'lucide-react';
+import LoadingScreen from './LoadingScreen';
 
 interface Card {
   id: string;
@@ -55,7 +56,7 @@ const DECK_POOL: Card[] = [
     color: 'gray',
     image: c.img,
     canAttack: false,
-    position: 'attack'
+    position: 'attack' as const
   })),
   ...CARD_CATALOG.prata.map((c, i) => ({
     id: `p-${i}`,
@@ -68,7 +69,7 @@ const DECK_POOL: Card[] = [
     color: 'silver',
     image: c.img,
     canAttack: false,
-    position: 'attack'
+    position: 'attack' as const
   })),
   ...CARD_CATALOG.ouro.map((c, i) => ({
     id: `o-${i}`,
@@ -81,7 +82,7 @@ const DECK_POOL: Card[] = [
     color: 'yellow',
     image: c.img,
     canAttack: false,
-    position: 'attack'
+    position: 'attack' as const
   }))
 ];
 
@@ -91,6 +92,18 @@ interface ArenaProps {
 }
 
 export default function Arena({ onClose }: ArenaProps) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  const arenaImages = useMemo(() => [
+    '/arena.webp',
+    '/enemy_avatar.webp',
+    '/hero_avatar.webp',
+    '/fundo.webp',
+    ...CARD_CATALOG.neutro.map(c => c.img),
+    ...CARD_CATALOG.prata.map(c => c.img),
+    ...CARD_CATALOG.ouro.map(c => c.img),
+  ], []);
+
   // Helper to shuffle any array
   const shuffle = <T,>(array: T[]): T[] => {
     const newArr = [...array];
@@ -100,6 +113,8 @@ export default function Arena({ onClose }: ArenaProps) {
     }
     return newArr;
   };
+
+
 
   // Initial Logic: Prepare Deck and Hand
   const shuffledDeck = useMemo(() => shuffle(DECK_POOL), []);
@@ -534,6 +549,16 @@ export default function Arena({ onClose }: ArenaProps) {
       setSelectedCardId(null);
     }
   };
+
+  if (isLoading) {
+    return (
+      <LoadingScreen 
+        images={arenaImages} 
+        onComplete={() => setIsLoading(false)} 
+        message="INVOCANDO ARENA..."
+      />
+    );
+  }
 
   return (
     <div 

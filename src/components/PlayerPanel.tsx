@@ -27,6 +27,7 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
+import LoadingScreen from './LoadingScreen';
 
 interface PlayerPanelProps {
   onStartGame: () => void;
@@ -35,6 +36,22 @@ interface PlayerPanelProps {
 
 export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const dashboardImages = [
+    '/logo.webp',
+    '/hero_avatar.webp',
+    '/arena.webp',
+    '/battle_preview.webp',
+    '/boss_raid.webp',
+    '/reward_card.webp',
+    '/witch.webp',
+    '/Warlord.webp',
+    '/Guerreiro_Orc.webp',
+    '/Rato_Esquelético.webp',
+    '/enemy_avatar.webp'
+  ];
+
   
   const sidebarLinks = [
     { id: 'dashboard', label: 'Início', icon: Home },
@@ -44,6 +61,16 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
     { id: 'marketplace', label: 'Mercado', icon: ShieldCheck },
     { id: 'community', label: 'Comunidade', icon: Users },
   ];
+
+  if (isLoading) {
+    return (
+      <LoadingScreen 
+        images={dashboardImages} 
+        onComplete={() => setIsLoading(false)} 
+        message="MANIFESTANDO REINO..."
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-[#060608] text-white flex overflow-hidden font-display shrink-0">
