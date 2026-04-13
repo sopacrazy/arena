@@ -14,6 +14,7 @@ interface Card {
   image?: string;
   canAttack: boolean;
   position: 'attack' | 'defense';
+  isFaceDown?: boolean;
 }
 
 // Catalog base for game cards from 'RECK 1'
@@ -134,6 +135,8 @@ export default function Arena({ onClose }: ArenaProps) {
 
   const fieldRef = React.useRef(field);
   const enemyFieldRef = React.useRef(enemyField);
+
+  const [summoningConfig, setSummoningConfig] = useState<{ card: Card, mode: 'attack' | 'defense' } | null>(null);
 
   React.useEffect(() => { fieldRef.current = field; }, [field]);
   React.useEffect(() => { enemyFieldRef.current = enemyField; }, [enemyField]);
@@ -414,7 +417,12 @@ export default function Arena({ onClose }: ArenaProps) {
 
     setField(prev => {
       const next = [...prev];
-      next[index] = { ...card, canAttack: false, position: 'attack' };
+      next[index] = { 
+        ...card, 
+        canAttack: false, 
+        position: summoningConfig?.mode || 'attack',
+        isFaceDown: summoningConfig?.mode === 'defense'
+      };
       return next;
     });
     
@@ -422,13 +430,14 @@ export default function Arena({ onClose }: ArenaProps) {
     
     if (isCombatantSlot) {
       setPlayedCardThisTurn(true);
-      setHistory(prev => [`● Invocou '${card.name}' em MODO DE ATAQUE`, ...prev]);
+      setHistory(prev => [`● Invocou '${card.name}' em MODO DE ${summoningConfig?.mode === 'attack' ? 'ATAQUE' : 'DEFESA (OCULTO)'}`, ...prev]);
     } else if (isBlessingSlot) {
       setHistory(prev => [`● Ativou Benção: '${card.name}'`, ...prev]);
     } else {
       setHistory(prev => [`● Preparou Reação no campo`, ...prev]);
     }
 
+    setSummoningConfig(null);
     setSelectedHandCardId(null);
   };
 
@@ -743,11 +752,17 @@ export default function Arena({ onClose }: ArenaProps) {
                           onMouseEnter={() => setHoveredCard(enemyField[i])}
                           onMouseLeave={() => setHoveredCard(null)}
                           className={`w-full h-full relative bg-contain bg-center bg-no-repeat transition-all ${selectedCardId ? 'ring-2 ring-red-500 group-hover:ring-offset-2 hover:scale-105' : ''}`} 
-                          style={{ backgroundImage: `url("${enemyField[i]?.image || '/fundo.png'}")` }}
+                          style={{ 
+                            backgroundImage: (enemyField[i]?.isFaceDown) ? 'url("/fundo.png")' : `url("${enemyField[i]?.image || '/fundo.png'}")` 
+                          }}
                         >
                            <div className="absolute inset-x-1 bottom-1 flex justify-between px-1">
-                              <span className="text-[10px] font-black text-red-500">{enemyField[i]?.atk}</span>
-                              <span className="text-[10px] font-black text-emerald-500">{enemyField[i]?.def}</span>
+                              {!enemyField[i]?.isFaceDown && (
+                                <>
+                                  <span className="text-[10px] font-black text-red-500">{enemyField[i]?.atk}</span>
+                                  <span className="text-[10px] font-black text-emerald-500">{enemyField[i]?.def}</span>
+                                </>
+                              )}
                            </div>
                            <button 
                               onClick={() => selectedCardId ? handleCombat(selectedCardId, enemyField[i]!.id, i) : setInspectedCard(enemyField[i]!)}
@@ -839,7 +854,12 @@ export default function Arena({ onClose }: ArenaProps) {
                                  }}
                                >
                                   <div className="relative w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url("${field[i]?.image}")` }}>
-                                     <div className="absolute inset-0 bg-black/10" />
+                                     <div className={`absolute inset-0 ${field[i]?.isFaceDown ? 'bg-black/60 backdrop-blur-sm group-hover:bg-black/40' : 'bg-black/10'}`} />
+                                     {field[i]?.isFaceDown && (
+                                       <div className="absolute inset-0 flex items-center justify-center">
+                                          <Ghost className="w-8 h-8 text-white/20 animate-pulse" />
+                                       </div>
+                                     )}
                                      <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
                                        <span className="text-[10px] font-black text-red-500">{field[i]?.atk}</span>
                                        <span className="text-[10px] font-black text-emerald-500">{field[i]?.def}</span>
@@ -966,12 +986,14 @@ export default function Arena({ onClose }: ArenaProps) {
                         onClick={() => {
                           if (selectedHandCardId === card.id) {
                              setSelectedHandCardId(null);
+                             setSummoningConfig(null);
                           } else {
                              setSelectedHandCardId(card.id);
+                             setSummoningConfig({ card, mode: 'attack' });
                              setSelectedCardId(null);
                           }
                         }}
-                        className={`relative w-24 h-34 cursor-pointer flex items-end -ml-2 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-6 scale-110 z-50' : 'hover:-translate-y-2'}`}
+                        className={`relative w-24 h-34 cursor-pointer flex items-end -ml-2 first:ml-0 transition-transform ${selectedHandCardId === card.id ? '-translate-y-12 scale-110 z-50' : 'hover:-translate-y-2'}`}
                       >
                          {/* SELECTION GLOW */}
                          {selectedHandCardId === card.id && (
@@ -1022,6 +1044,61 @@ export default function Arena({ onClose }: ArenaProps) {
         </div>
       </div>
       
+            {/* SUMMONING MODE SELECTOR (OVERLAY) */}
+            <AnimatePresence>
+              {summoningConfig && selectedHandCardId && !playedCardThisTurn && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                  className="fixed bottom-40 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-6 p-8 bg-black/80 backdrop-blur-2xl rounded-[2rem] border border-gold/30 shadow-[0_0_50px_rgba(255,215,0,0.2)]"
+                >
+                   <div className="text-center space-y-2">
+                     <h3 className="text-xl font-black text-gold uppercase tracking-[0.2em] italic">Preparar Invocação</h3>
+                     <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Escolha a posição de batalha para "{summoningConfig.card.name}"</p>
+                   </div>
+
+                   <div className="flex gap-8">
+                      <button 
+                        onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'attack' })}
+                        className={`group relative w-40 h-56 rounded-2xl border-2 transition-all flex flex-col items-center justify-between p-4 overflow-hidden
+                          ${summoningConfig.mode === 'attack' ? 'border-red-500 bg-red-500/10 shadow-[0_0_30px_rgba(239,68,68,0.3)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                      >
+                         <div className="relative z-10 text-center space-y-1">
+                            <Sword className={`w-8 h-8 mx-auto ${summoningConfig.mode === 'attack' ? 'text-red-500' : 'text-white/20 group-hover:text-white/40'}`} />
+                            <div className="text-xs font-black text-white uppercase tracking-widest">Ataque</div>
+                         </div>
+                         <div 
+                           className={`w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100
+                             ${summoningConfig.mode === 'attack' ? 'grayscale-0 brightness-100 scale-105' : ''}`}
+                           style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
+                         />
+                         <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Up</div>
+                      </button>
+
+                      <button 
+                        onClick={() => setSummoningConfig({ ...summoningConfig, mode: 'defense' })}
+                        className={`group relative w-40 h-56 rounded-2xl border-2 transition-all flex flex-col items-center justify-between p-4 overflow-hidden
+                          ${summoningConfig.mode === 'defense' ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.3)]' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                      >
+                         <div className="relative z-10 text-center space-y-1">
+                            <Shield className={`w-8 h-8 mx-auto ${summoningConfig.mode === 'defense' ? 'text-emerald-500' : 'text-white/20 group-hover:text-white/40'}`} />
+                            <div className="text-xs font-black text-white uppercase tracking-widest">Defesa</div>
+                         </div>
+                         <div 
+                           className={`w-full h-32 rounded-lg bg-contain bg-center bg-no-repeat transition-all grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 rotate-90 scale-75
+                             ${summoningConfig.mode === 'defense' ? 'grayscale-0 brightness-100 scale-90' : ''}`}
+                           style={{ backgroundImage: `url("${summoningConfig.card.image}")` }}
+                         />
+                         <div className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full text-center">Face-Down</div>
+                      </button>
+                   </div>
+
+                   <div className="text-[10px] font-black text-gold/60 animate-pulse tracking-[0.3em] uppercase">Clique em um espaço vazio na Arena para Invocação</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
       {/* Visual FX Layers */}
       <div className="fixed inset-0 pointer-events-none z-20">
         <div 
