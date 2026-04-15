@@ -28,6 +28,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
+import InventoryView from './InventoryView';
 
 interface PlayerPanelProps {
   onStartGame: () => void;
@@ -54,12 +55,12 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
 
   
   const sidebarLinks = [
-    { id: 'dashboard', label: 'Início', icon: Home },
-    { id: 'rankings', label: 'Rankings', icon: Trophy },
-    { id: 'games', label: 'Modos de Jogo', icon: Gamepad2 },
-    { id: 'inventory', label: 'Inventário', icon: ShoppingBag },
-    { id: 'marketplace', label: 'Mercado', icon: ShieldCheck },
-    { id: 'community', label: 'Comunidade', icon: Users },
+    { id: 'dashboard', label: 'Início',       icon: Home,       disabled: false },
+    { id: 'rankings',  label: 'Rankings',     icon: Trophy,     disabled: false },
+    { id: 'games',     label: 'Modos de Jogo',icon: Gamepad2,   disabled: false },
+    { id: 'inventory', label: 'Inventário',   icon: ShoppingBag,disabled: false },
+    { id: 'marketplace',label: 'Mercado',     icon: ShieldCheck,disabled: true  },
+    { id: 'community', label: 'Comunidade',   icon: Users,      disabled: true  },
   ];
 
   if (isLoading) {
@@ -84,24 +85,30 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
           {sidebarLinks.map((link) => (
             <button
               key={link.id}
-              onClick={() => setActiveTab(link.id)}
+              disabled={link.disabled}
+              onClick={() => !link.disabled && setActiveTab(link.id)}
+              title={link.disabled ? 'Em Breve' : ''}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
-                activeTab === link.id 
-                  ? 'bg-gold/10 text-gold border border-gold/20' 
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
+                link.disabled
+                  ? 'opacity-30 cursor-not-allowed text-gray-600'
+                  : activeTab === link.id
+                    ? 'bg-gold/10 text-gold border border-gold/20'
+                    : 'text-gray-500 hover:text-white hover:bg-white/5'
               }`}
             >
-              <link.icon className={`w-5 h-5 ${activeTab === link.id ? 'text-gold' : 'group-hover:text-white shadow-gold/20 transition-all'}`} />
+              <link.icon className={`w-5 h-5 ${link.disabled ? 'text-gray-600' : activeTab === link.id ? 'text-gold' : 'group-hover:text-white transition-all'}`} />
               <span className="text-sm font-black uppercase tracking-widest">{link.label}</span>
-              {activeTab === link.id && <div className="ml-auto w-1 h-1 rounded-full bg-gold shadow-[0_0_8px_#ffb700]" />}
+              {!link.disabled && activeTab === link.id && <div className="ml-auto w-1 h-1 rounded-full bg-gold shadow-[0_0_8px_#ffb700]" />}
+              {link.disabled && <span className="ml-auto text-[7px] font-black text-white/20 uppercase tracking-widest">Em Breve</span>}
             </button>
           ))}
         </nav>
 
         <div className="px-4 pt-4 border-t border-white/5 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest text-[10px] font-black">
+          <button disabled title="Em Breve" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl opacity-30 cursor-not-allowed text-gray-600 uppercase tracking-widest text-[10px] font-black">
             <Settings className="w-4 h-4" />
             Configurações
+            <span className="ml-auto text-[7px] font-black text-white/20 uppercase tracking-widest">Em Breve</span>
           </button>
           <button 
             onClick={onLogout}
@@ -306,6 +313,8 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
             </div>
           ) : activeTab === 'rankings' ? (
             <RankingsView />
+          ) : activeTab === 'inventory' ? (
+            <InventoryView />
           ) : (
             <div className="flex-1 flex items-center justify-center">
                <div className="text-center space-y-4">

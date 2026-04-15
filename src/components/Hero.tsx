@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { Play, Tv } from 'lucide-react';
+import { Tv } from 'lucide-react';
+import ForgeSparkCanvas from './ForgeSparkCanvas';
 
 export default function Hero({ onPlay }: { onPlay: () => void }) {
   return (
@@ -16,6 +17,9 @@ export default function Hero({ onPlay }: { onPlay: () => void }) {
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90" />
         <div className="absolute inset-0 bg-black/40" />
       </div>
+
+      {/* ✦ Faíscas de forja */}
+      <ForgeSparkCanvas />
       
       {/* Main Content Container */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 flex flex-col items-center text-center pt-20">

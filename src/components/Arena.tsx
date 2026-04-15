@@ -989,7 +989,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(-40deg)' : 'brightness(1)',
                         }}
                         exit={{ opacity: 0, scale: 1.3, rotate: 30, filter: 'blur(8px)' }}
-                        onMouseEnter={() => setHoveredCard(card)}
+                        onMouseEnter={() => card.position !== 'defense-closed' && setHoveredCard(card)}
                         onMouseLeave={() => setHoveredCard(null)}
                         className={`w-full h-full relative rounded-xl overflow-hidden ring-2 ${positionRing[card.position]}`}
                         style={{
@@ -997,7 +997,7 @@ export default function Arena({ onClose }: ArenaProps) {
                           backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
                           transform: card.position === 'defense-open' ? 'rotate(90deg) scale(0.75)' : 'none',
                         }}
-                        onClick={(e) => { e.stopPropagation(); if (attackingCardId && card) handlePlayerAttack(card.id); else setInspectedCard(card); }}
+                        onClick={(e) => { e.stopPropagation(); if (attackingCardId && card) handlePlayerAttack(card.id); else if (card.position !== 'defense-closed') setInspectedCard(card); }}
                       >
                         {!card.position.startsWith('defense') && (
                           <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
@@ -1409,3 +1409,5 @@ export default function Arena({ onClose }: ArenaProps) {
     </div>
   );
 }
+
+

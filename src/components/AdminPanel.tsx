@@ -448,7 +448,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           </div>
                           <div className="px-3 py-1.5 bg-emerald-600/20 backdrop-blur-md rounded-xl border border-emerald-500/30 flex items-center gap-2">
                              <span className="text-xs font-black text-white">{card.def}</span>
-                             <Heart className="w-3 h-3 text-emerald-500" />
+                             <Shield className="w-3 h-3 text-emerald-500" />
                           </div>
                         </div>
                         <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${card.level === 'Ouro' ? 'bg-yellow-400' : card.level === 'Prata' ? 'bg-zinc-400' : card.level === 'Bronze' ? 'bg-orange-400' : 'bg-zinc-600'} shadow-lg shadow-black/50`} />
@@ -568,7 +568,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                               </div>
                               <div className="bg-emerald-500/5 p-6 rounded-[2rem] border border-emerald-500/10 space-y-4">
                                 <label className="text-[11px] font-black uppercase text-emerald-500/60 tracking-[0.3em] flex items-center gap-2">
-                                   Vida (HP) <Heart className="w-3 h-3" />
+                                   <Shield className="w-3 h-3" /> Defesa (DEF)
                                 </label>
                                 <input 
                                   type="number"
@@ -729,9 +729,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                         </span>
                                      </div>
                                      <div className="flex flex-col items-end gap-1">
-                                        <span className="text-[10px] font-black text-emerald-500/50 uppercase tracking-widest">Vida</span>
+                                        <span className="text-[10px] font-black text-emerald-500/50 uppercase tracking-widest">Defesa</span>
                                         <span className="text-3xl font-black text-emerald-500 flex items-center gap-3">
-                                          {formData.def} <Heart className="w-8 h-8" />
+                                          {formData.def} <Shield className="w-8 h-8" />
                                         </span>
                                      </div>
                                   </div>
