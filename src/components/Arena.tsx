@@ -190,6 +190,9 @@ export default function Arena({ onClose }: ArenaProps) {
   const [history,         setHistory]         = useState<string[]>(['● COMBATE INICIADO', '● BOA SORTE!']);
   const [attackAnim,      setAttackAnim]      = useState<{ id: string; targetId: string; isOpponent: boolean } | null>(null);
 
+  // Menu flutuante de mudança de posição (abre ao clicar em combatente próprio na Fase de Organização)
+  const [positionMenu, setPositionMenu]     = useState<number | null>(null);
+
   // Modo Sacrifício (Substituição por Poder)
   const [sacrificeMode, setSacrificeMode] = useState<{
     card: Card; needed: number; selected: string[];
@@ -740,16 +743,16 @@ export default function Arena({ onClose }: ArenaProps) {
   };
 
   // ─── MUDAR POSIÇÃO (Fase de Organização, 1x por combatente por turno) ─────
-  const togglePosition = (slotIndex: number) => {
+  // Recebe a posição desejada explicitamente — sem ciclo automático
+  const setCardPosition = (slotIndex: number, newPos: Position) => {
     if (turn !== 'player' || turnPhase !== 'organize') return;
     const card = playerField[slotIndex];
     if (!card) return;
-    if (card.positionChangedThisTurn) { addHistory(`● ${card.name} já mudou de posição neste turno`); return; }
-    // Ciclo: Ataque → Defesa Aberta → Defesa Fechada → Ataque
-    const next: Record<Position, Position> = { 'attack': 'defense-open', 'defense-open': 'defense-closed', 'defense-closed': 'attack' };
-    const newPos = next[card.position];
+    if (card.positionChangedThisTurn) { addHistory(`● ${card.name} já mudou de posição neste turno`); setPositionMenu(null); return; }
+    if (card.position === newPos) { setPositionMenu(null); return; }
     setPlayerField(prev => prev.map((c, i) => i === slotIndex ? { ...c!, position: newPos, positionChangedThisTurn: true } : c));
     addHistory(`● ${card.name} → ${positionLabel[newPos]}`);
+    setPositionMenu(null);
   };
 
   // ─── INICIAR MODO SACRIFÍCIO (Substituição por Poder) ─────────────────────
@@ -995,19 +998,14 @@ export default function Arena({ onClose }: ArenaProps) {
                         style={{
                           backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
                           backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                          transform: card.position === 'defense-open' ? 'rotate(90deg) scale(0.75)' : 'none',
+                          transform: card.position === 'defense-open' ? 'rotate(180deg)' : 'none',
                         }}
                         onClick={(e) => { e.stopPropagation(); if (attackingCardId && card) handlePlayerAttack(card.id); else if (card.position !== 'defense-closed') setInspectedCard(card); }}
                       >
-                        {!card.position.startsWith('defense') && (
+                        {card.position === 'attack' && (
                           <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
                             <span className="text-[9px] font-black text-red-400">{card.atq}</span>
                             <span className="text-[9px] font-black text-blue-300">{card.def}</span>
-                          </div>
-                        )}
-                        {card.position === 'defense-open' && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Shield className="w-5 h-5 text-blue-400/60" />
                           </div>
                         )}
                       </motion.div>
@@ -1064,14 +1062,14 @@ export default function Arena({ onClose }: ArenaProps) {
                           style={{
                             backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
                             backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                            transform: card.position === 'defense-open' ? 'rotate(90deg) scale(0.75)' : 'none',
+                            transform: card.position === 'defense-open' ? 'rotate(180deg)' : 'none',
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (turnPhase === 'organize') {
-                              // Na fase de organização, clique abre menu de ação
                               if (!pendingCard && !sacrificeMode) {
-                                togglePosition(i);
+                                // Abre menu de escolha de posição
+                                setPositionMenu(prev => prev === i ? null : i);
                               } else {
                                 handleFieldSlotClick(i);
                               }
@@ -1080,15 +1078,10 @@ export default function Arena({ onClose }: ArenaProps) {
                             }
                           }}
                         >
-                          {card.position !== 'defense-closed' && (
+                          {card.position === 'attack' && (
                             <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
                               <span className="text-[9px] font-black text-red-400">{card.atq}</span>
                               <span className="text-[9px] font-black text-blue-300">{card.def}</span>
-                            </div>
-                          )}
-                          {card.position === 'defense-open' && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Shield className="w-5 h-5 text-blue-400/60" />
                             </div>
                           )}
                           {card.attackedThisTurn && (
@@ -1104,6 +1097,38 @@ export default function Arena({ onClose }: ArenaProps) {
                         </motion.div>
                       )}
                     </AnimatePresence>
+
+                    {/* Menu flutuante de posição — abre ao clicar na carta durante Fase de Organização */}
+                    <AnimatePresence>
+                      {positionMenu === i && card && turn === 'player' && turnPhase === 'organize' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.9 }}
+                          onClick={e => e.stopPropagation()}
+                          className="absolute -top-[88px] left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-1 bg-black/90 border border-white/15 rounded-xl p-2 shadow-xl w-28"
+                        >
+                          <div className="text-[6px] font-black text-white/30 uppercase tracking-widest text-center mb-0.5">Posição</div>
+                          {(['attack', 'defense-open', 'defense-closed'] as Position[]).map(pos => (
+                            <button
+                              key={pos}
+                              onClick={() => setCardPosition(i, pos)}
+                              className={`text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-lg transition-all flex items-center gap-1.5
+                                ${card.position === pos
+                                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                  : 'text-white/50 hover:bg-white/10 hover:text-white border border-transparent'}`}
+                            >
+                              {pos === 'attack' && <Sword className="w-3 h-3 text-red-400 shrink-0" />}
+                              {pos === 'defense-open' && <Shield className="w-3 h-3 text-blue-400 shrink-0" />}
+                              {pos === 'defense-closed' && <Eye className="w-3 h-3 text-gray-400 shrink-0" />}
+                              {pos === 'attack' ? 'Ataque' : pos === 'defense-open' ? 'Def. Aberta' : 'Def. Fechada'}
+                            </button>
+                          ))}
+                          <button onClick={() => setPositionMenu(null)} className="text-[7px] text-white/20 hover:text-white/50 text-center mt-0.5">Cancelar</button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {!card && <span className="text-[7px] font-black text-white/10 uppercase">Combatente</span>}
                   </div>
                 );
