@@ -985,12 +985,14 @@ export default function Arena({ onClose }: ArenaProps) {
                   <AnimatePresence mode="popLayout">
                     {card && (
                       <motion.div key={card.id}
-                        initial={{ opacity: 0, scale: 0.2, y: -150 }}
+                        initial={{ opacity: 0, scale: 0.2, y: -150, rotate: 0 }}
                         animate={{
                           opacity: 1, scale: 1,
+                          rotate: card.position === 'defense-open' ? 180 : 0,
                           y: attackAnim?.id === card.id ? 100 : 0,
                           filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(-40deg)' : 'brightness(1)',
                         }}
+                        transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
                         exit={{ opacity: 0, scale: 1.3, rotate: 30, filter: 'blur(8px)' }}
                         onMouseEnter={() => card.position !== 'defense-closed' && setHoveredCard(card)}
                         onMouseLeave={() => setHoveredCard(null)}
@@ -998,7 +1000,6 @@ export default function Arena({ onClose }: ArenaProps) {
                         style={{
                           backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
                           backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                          transform: card.position === 'defense-open' ? 'rotate(180deg)' : 'none',
                         }}
                         onClick={(e) => { e.stopPropagation(); if (attackingCardId && card) handlePlayerAttack(card.id); else if (card.position !== 'defense-closed') setInspectedCard(card); }}
                       >
@@ -1049,12 +1050,15 @@ export default function Arena({ onClose }: ArenaProps) {
                     <AnimatePresence mode="popLayout">
                       {card && (
                         <motion.div key={card.id}
-                          initial={{ opacity: 0, scale: 0.2, y: 150 }}
+                          initial={{ opacity: 0, scale: 0.2, y: 150, rotate: 0 }}
                           animate={{
                             opacity: 1, scale: 1,
+                            // defense-open: carta de cabeça para baixo (face aparente, girada 180°)
+                            rotate: card.position === 'defense-open' ? 180 : 0,
                             y: attackAnim?.id === card.id ? -100 : 0,
                             filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(40deg)' : 'brightness(1)',
                           }}
+                          transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
                           exit={{ opacity: 0, scale: 1.3, rotate: -30, filter: 'blur(8px)' }}
                           onMouseEnter={() => setHoveredCard(card)}
                           onMouseLeave={() => setHoveredCard(null)}
@@ -1062,7 +1066,6 @@ export default function Arena({ onClose }: ArenaProps) {
                           style={{
                             backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
                             backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                            transform: card.position === 'defense-open' ? 'rotate(180deg)' : 'none',
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
