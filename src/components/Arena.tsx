@@ -988,7 +988,16 @@ export default function Arena({ onClose }: ArenaProps) {
                         initial={{ opacity: 0, scale: 0.2, y: -150, rotate: 0 }}
                         animate={{
                           opacity: 1, scale: 1,
-                          rotate: card.position === 'defense-open' ? 180 : 0,
+                          /**
+                           * Perspectiva do jogador sobre o campo inimigo:
+                           * O oponente senta do outro lado da mesa, então todos os cards
+                           * estão orientados para ele (virados 180° em relação ao jogador).
+                           *
+                           * attack      → 180° (carta de cabeça pra baixo na visão do jogador)
+                           * defense-open → 0°  (180° do oponente + 180° da perspectiva = 360° = 0°)
+                           * defense-closed → 0° (verso é simétrico, sem rotação)
+                           */
+                          rotate: card.position === 'attack' ? 180 : 0,
                           y: attackAnim?.id === card.id ? 100 : 0,
                           filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(-40deg)' : 'brightness(1)',
                         }}
