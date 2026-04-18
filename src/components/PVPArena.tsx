@@ -608,68 +608,6 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
     return checkSummonValidity(pendingCard, slotIndex).valid;
   };
 
-  const CardSlot = ({ card, isOpponent = false, onClick, isAttackTarget = false, isAttacking = false, isSacTarget = false, isSacSelected = false }: {
-    card: Card | null; isOpponent?: boolean; onClick?: () => void;
-    isAttackTarget?: boolean; isAttacking?: boolean; isSacTarget?: boolean; isSacSelected?: boolean;
-  }) => (
-    <div
-      onClick={onClick}
-      className={`w-24 h-36 rounded-xl border-2 border-dashed flex items-center justify-center relative shrink-0 transition-all cursor-pointer
-        ${isAttacking   ? 'border-yellow-400 shadow-[0_0_16px_rgba(234,179,8,0.5)] scale-110 z-20' : ''}
-        ${isAttackTarget? 'border-red-400 bg-red-400/10 shadow-[0_0_12px_rgba(239,68,68,0.3)] animate-pulse' : ''}
-        ${isSacTarget   ? 'border-red-400 bg-red-400/10' : ''}
-        ${isSacSelected ? 'border-red-500 bg-red-500/20' : ''}
-        ${!isAttacking && !isAttackTarget && !isSacTarget && !isSacSelected ? 'border-white/10 bg-black/20' : ''}`}
-    >
-      <AnimatePresence mode="popLayout">
-        {card && (
-          <motion.div key={card.id}
-            initial={{ opacity: 0, scale: 0.2, y: isOpponent ? -60 : 60 }}
-            animate={{
-              opacity: 1, scale: 1,
-              rotate: isOpponent
-                ? (card.position === 'defense-open' ? -90 : card.position === 'defense-closed' ? 0 : 180)
-                : (card.position === 'defense-open' ? 90 : 0),
-              y: attackAnim?.id === card.id ? (isOpponent ? 50 : -50) : 0,
-              filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(40deg)' : 'brightness(1)',
-            }}
-            exit={{ opacity: 0, scale: 1.3, filter: 'blur(8px)' }}
-            transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
-            className={`w-full h-full relative rounded-xl overflow-hidden ring-2 ${positionRing[card.position]}`}
-            style={{
-              backgroundImage: (isOpponent && card.position === 'defense-closed')
-                ? 'url("/fundo.webp")'
-                : (!isOpponent && card.position === 'defense-closed')
-                  ? 'url("/fundo.webp")'
-                  : `url("${card.image}")`,
-              backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-            }}
-          >
-            {card.position === 'attack' && (
-              <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                <span className="text-[9px] font-black text-red-400">{card.atq}</span>
-                <span className="text-[9px] font-black text-blue-300">{card.def}</span>
-              </div>
-            )}
-            {card.attackedThisTurn && !isOpponent && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
-                <span className="text-[6px] font-black text-white/50 uppercase">Atacou</span>
-              </div>
-            )}
-            {isSacSelected && (
-              <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                <span className="text-[7px] font-black text-white">✓</span>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {!card && !isOpponent && isValidSummonSlot(myField.indexOf(card as null)) && (
-        <div className="absolute inset-0 border-2 border-emerald-400 rounded-xl bg-emerald-400/10" />
-      )}
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-hidden flex items-center justify-center font-sans text-white">
       {/* Fechar */}
@@ -685,12 +623,12 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
         {opponentConnected ? 'Conectado' : 'Aguardando oponente...'}
       </div>
 
-      {/* Área escalada */}
-      <div style={{ width: 1280, height: 768, transform: `scale(${arenaScale})`, transformOrigin: 'center center', position: 'relative', flexShrink: 0 }}>
+      {/* Área escalada — 1280×768 design */}
+      <div style={{ width: 1280, height: 768, transform: `scale(${arenaScale})`, transformOrigin: 'center center', position: 'relative', cursor: attackingCardId ? 'crosshair' : 'default', flexShrink: 0 }}>
 
         {/* Fundo */}
         <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: 'url("/arena.webp")' }}>
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-[1px]" />
         </div>
 
         {/* Transição de turno */}
@@ -721,9 +659,9 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
           )}
         </AnimatePresence>
 
-        <div className={`relative z-10 w-full h-full flex flex-col px-4 pt-2 pb-2 ${gameOver ? 'opacity-20 blur-sm' : ''}`}>
+        <div className={`relative z-10 w-full h-full flex flex-col px-4 pt-2 pb-2 transition-opacity ${gameOver ? 'opacity-20 blur-sm' : ''}`}>
 
-          {/* HUD Oponente */}
+          {/* HUD Oponente (topo esquerdo) */}
           <div
             onClick={() => attackingCardId && handleAttack('direct')}
             className={`absolute top-5 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border transition-all z-50 ${attackingCardId ? 'ring-2 ring-red-500 border-red-500 cursor-crosshair shadow-[0_0_20px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/20'}`}
@@ -742,150 +680,239 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
             </div>
           </div>
 
-          {/* Mão do oponente (contagem) */}
-          <div className="absolute top-5 right-48 flex flex-col items-center gap-1 z-40">
-            <div className="flex gap-1">
-              {Array.from({ length: opponentHandCount }).map((_, i) => (
-                <div key={i} className="w-8 h-12 rounded-lg border border-red-500/20 bg-black/40"
-                  style={{ backgroundImage: 'url("/fundo.webp")', backgroundSize: 'cover' }} />
+          {/* Mão do oponente (topo direito) */}
+          <div className="absolute top-5 right-10 flex flex-col items-end gap-1 z-50">
+            <span className="text-[7px] font-black text-red-500/30 uppercase tracking-[0.3em]">Mão do Oponente</span>
+            <div className="flex -space-x-8">
+              {Array.from({ length: Math.min(opponentHandCount, 8) }).map((_, i) => (
+                <motion.div key={i} initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.04 }}
+                  style={{ rotate: (i - Math.floor(opponentHandCount / 2)) * -3 }}
+                  className="w-12 h-18 rounded-lg border border-white/10 bg-[url('/fundo.webp')] bg-cover" />
               ))}
             </div>
-            <span className="text-[7px] font-black text-red-500/30 uppercase tracking-[0.3em]">Mão do Oponente</span>
           </div>
 
-          {/* Centro: fase + timer + botões */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2">
-            <div className="text-center bg-black/60 border border-white/10 rounded-xl px-3 py-2 w-40">
-              <div className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">
-                {isMyTurn ? 'Seu Turno' : `Turno de ${opponentName}`}
+          {/* Área principal: sidebar esq + campo + sidebar dir */}
+          <div className="flex-1 flex gap-6 items-start justify-center pt-16">
+
+            {/* SIDEBAR ESQUERDA: fase, timer, botões */}
+            <div className="w-36 flex flex-col items-center gap-4 self-center shrink-0">
+              <div className="text-center bg-black/60 border border-white/10 rounded-xl px-3 py-2 w-full">
+                <div className="text-[7px] font-black text-white/30 uppercase tracking-widest mb-1">Fase Atual</div>
+                <div className={`text-[9px] font-black uppercase tracking-wide ${isMyTurn ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {isMyTurn
+                    ? (turnPhase === 'organize' ? '⚙ Organização' : '⚔ Confronto')
+                    : '◌ Oponente'}
+                </div>
+                <div className="text-[7px] text-white/20 font-mono mt-1">Turno {turnCount}</div>
               </div>
-              <div className={`text-[11px] font-black uppercase tracking-widest ${isMyTurn ? 'text-yellow-400' : 'text-red-400/60'}`}>
-                {isMyTurn ? (turnPhase === 'organize' ? '⚙ Organização' : '⚔ Confronto') : '⏳ Aguardando'}
-              </div>
-              <div className="text-[7px] text-white/20 mt-0.5">Turno {turnCount}</div>
+
+              {isMyTurn && (
+                <>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`text-2xl font-black font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
+                      {String(timeLeft).padStart(2, '0')}s
+                    </div>
+                    <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
+                      <motion.div animate={{ width: `${(timeLeft / 30) * 100}%` }}
+                        className={`h-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-yellow-400'}`} />
+                    </div>
+                  </div>
+                  {turnPhase === 'organize' && (
+                    <button onClick={advanceToConfront}
+                      className="flex items-center gap-1 px-3 py-3 rounded-lg font-black text-[8px] uppercase tracking-wide bg-blue-600/80 border border-blue-400/40 text-white hover:bg-blue-500 active:scale-95 transition-all w-full justify-center">
+                      <ChevronRight className="w-3 h-3" />Confronto
+                    </button>
+                  )}
+                  <button onClick={handleEndTurn}
+                    className={`flex items-center gap-1 px-3 py-3 rounded-lg font-black text-[8px] uppercase tracking-wide transition-all w-full justify-center border
+                      ${turnPhase === 'confront'
+                        ? 'bg-emerald-600/90 border-emerald-400/40 text-white hover:bg-emerald-500 active:scale-95'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}>
+                    Fim do Turno
+                  </button>
+                </>
+              )}
+
+              {sacrificeMode && (
+                <div className="text-center bg-red-900/40 border border-red-500/30 rounded-lg px-2 py-2 w-full">
+                  <div className="text-[8px] font-black text-red-400 uppercase">Sacrifício</div>
+                  <div className="text-sm font-black text-white font-mono">{sacrificeMode.selected.length}/{sacrificeMode.needed}</div>
+                  <div className="text-[7px] text-white/40">Neutros selecionados</div>
+                  <button onClick={() => setSacrificeMode(null)} className="mt-1 text-[7px] text-red-400 hover:text-red-300 underline">Cancelar</button>
+                </div>
+              )}
             </div>
 
-            {isMyTurn && (
-              <>
-                <div className={`text-2xl font-black font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
-                  {String(timeLeft).padStart(2, '0')}s
-                </div>
-                <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div animate={{ width: `${(timeLeft / 30) * 100}%` }}
-                    className={`h-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-yellow-400'}`} />
-                </div>
-                <button onClick={advanceToConfront} disabled={turnPhase !== 'organize'}
-                  className="px-4 py-2 text-[9px] font-black uppercase bg-blue-700/60 hover:bg-blue-600 border border-blue-400/30 rounded-lg text-white transition-all disabled:opacity-30">
-                  <ChevronRight className="w-3 h-3 inline mr-1" />Confronto
-                </button>
-                <button onClick={handleEndTurn}
-                  className="px-4 py-2 text-[9px] font-black uppercase bg-red-800/60 hover:bg-red-700 border border-red-400/30 rounded-lg text-white transition-all">
-                  Fim do Turno
-                </button>
-              </>
-            )}
-          </div>
+            {/* CAMPO DE BATALHA */}
+            <div className="flex flex-col gap-2 flex-1 max-w-[820px]">
 
-          {/* Campo do Oponente */}
-          <div className="flex gap-2 justify-center items-center mt-16">
-            {opponentField.map((card, i) => (
-              <div key={`op-${i}`} onClick={() => attackingCardId && card && handleAttack(card.id)}>
-                <CardSlot card={card} isOpponent isAttackTarget={!!attackingCardId && !!card} />
+              {/* Campo do oponente */}
+              <div className="flex gap-2 justify-center items-center">
+                {opponentField.map((card, i) => (
+                  <div key={`op-${i}`}
+                    onClick={() => attackingCardId && card && handleAttack(card.id)}
+                    className={`w-24 h-36 rounded-xl border-2 border-dashed flex items-center justify-center relative shrink-0 transition-all
+                      ${attackingCardId && card ? 'border-red-500 cursor-crosshair shadow-[0_0_12px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/15 bg-black/30'}`}
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {card && (
+                        <motion.div key={card.id}
+                          initial={{ opacity: 0, scale: 0.2, y: -150, rotate: 0 }}
+                          animate={{
+                            opacity: 1, scale: 1,
+                            rotate: card.position === 'attack' ? 180 : 0,
+                            y: attackAnim?.targetId === card.id ? 100 : 0,
+                            filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(-40deg)' : 'brightness(1)',
+                          }}
+                          transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
+                          exit={{ opacity: 0, scale: 1.3, rotate: 30, filter: 'blur(8px)' }}
+                          className={`w-full h-full relative rounded-xl overflow-hidden ring-2 ${positionRing[card.position]}`}
+                          style={{
+                            backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
+                            backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+                          }}
+                        >
+                          {card.position === 'attack' && (
+                            <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                              <span className="text-[9px] font-black text-red-400">{card.atq}</span>
+                              <span className="text-[9px] font-black text-blue-300">{card.def}</span>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {!card && <span className="text-[7px] font-black text-white/10 uppercase">Combatente</span>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent flex items-center justify-center relative my-2">
-            <div className="absolute px-4 py-0.5 bg-black/80 border border-white/10 rounded-full text-[6px] font-black text-yellow-400/60 uppercase tracking-[0.4em]">
-              Linha de Combate
+              {/* Divisória */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent flex items-center justify-center relative my-1">
+                <div className="absolute px-4 py-0.5 bg-black/80 border border-white/10 rounded-full text-[6px] font-black text-yellow-400/60 uppercase tracking-[0.4em]">
+                  Linha de Combate
+                </div>
+              </div>
+
+              {/* Meu campo */}
+              <div className="flex gap-2 justify-center items-center">
+                {myField.map((card, i) => {
+                  const isAttacking  = attackingCardId === card?.id;
+                  const isValidTarget = isValidSummonSlot(i);
+                  const isSacTarget  = !!(sacrificeMode && sacrificeMode.selected.length < sacrificeMode.needed && card?.level === 'Neutro' && !sacrificeMode.selected.includes(card?.id ?? ''));
+                  const isSacSelected = !!sacrificeMode?.selected.includes(card?.id ?? '');
+                  return (
+                    <div key={`my-${i}`}
+                      onClick={() => {
+                        if (turnPhase === 'confront' && card && card.position === 'attack' && !card.attackedThisTurn && !card.summonedThisTurn) {
+                          setAttackingCardId(prev => prev === card.id ? null : card.id);
+                        } else if (turnPhase === 'organize' && card && !pendingCard && !sacrificeMode) {
+                          setPositionMenu(prev => prev === i ? null : i);
+                        } else {
+                          handleFieldSlotClick(i);
+                        }
+                      }}
+                      className={`w-24 h-36 rounded-xl border-2 border-dashed flex items-center justify-center relative shrink-0 transition-all cursor-pointer
+                        ${isAttacking    ? 'border-yellow-400 shadow-[0_0_16px_rgba(234,179,8,0.5)] scale-110 z-20' : ''}
+                        ${isValidTarget  ? 'border-emerald-400 bg-emerald-400/10 shadow-[0_0_12px_rgba(52,211,153,0.3)]' : ''}
+                        ${isSacTarget    ? 'border-red-400 bg-red-400/10 shadow-[0_0_12px_rgba(239,68,68,0.3)]' : ''}
+                        ${isSacSelected  ? 'border-red-500 bg-red-500/20 shadow-[0_0_16px_rgba(239,68,68,0.5)]' : ''}
+                        ${!isAttacking && !isValidTarget && !isSacTarget && !isSacSelected ? 'border-white/10 bg-black/20' : ''}`}
+                    >
+                      <AnimatePresence mode="popLayout">
+                        {card && (
+                          <motion.div key={card.id}
+                            initial={{ opacity: 0, scale: 0.2, y: 150, rotate: 0 }}
+                            animate={{
+                              opacity: 1, scale: 1,
+                              rotate: card.position === 'defense-open' ? 90 : 0,
+                              y: attackAnim?.id === card.id ? -100 : 0,
+                              filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(40deg)' : 'brightness(1)',
+                            }}
+                            transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
+                            exit={{ opacity: 0, scale: 1.3, rotate: -30, filter: 'blur(8px)' }}
+                            className={`w-full h-full relative rounded-xl overflow-hidden ring-2 ${positionRing[card.position]}`}
+                            style={{
+                              backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
+                              backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
+                            }}
+                          >
+                            {card.position === 'attack' && (
+                              <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                                <span className="text-[9px] font-black text-red-400">{card.atq}</span>
+                                <span className="text-[9px] font-black text-blue-300">{card.def}</span>
+                              </div>
+                            )}
+                            {(card.attackedThisTurn || card.summonedThisTurn) && (
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
+                                <span className="text-[6px] font-black text-white/50 uppercase">
+                                  {card.attackedThisTurn ? 'Atacou' : 'Invocado'}
+                                </span>
+                              </div>
+                            )}
+                            {isSacSelected && (
+                              <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                                <span className="text-[7px] font-black text-white">✓</span>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Menu de posição */}
+                      <AnimatePresence>
+                        {positionMenu === i && card && isMyTurn && turnPhase === 'organize' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 6, scale: 0.9 }}
+                            onClick={e => e.stopPropagation()}
+                            className="absolute -top-[88px] left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-1 bg-black/90 border border-white/15 rounded-xl p-2 shadow-xl w-28"
+                          >
+                            <div className="text-[6px] font-black text-white/30 uppercase tracking-widest text-center mb-0.5">Posição</div>
+                            {(['attack', 'defense-open', 'defense-closed'] as Position[]).map(pos => (
+                              <button key={pos} onClick={() => setCardPosition(i, pos)}
+                                className={`text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-lg transition-all flex items-center gap-1.5
+                                  ${card.position === pos
+                                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white border border-transparent'}`}>
+                                {pos === 'attack' ? '⚔ Ataque' : pos === 'defense-open' ? '🛡 Def. Aberta' : '🌑 Def. Fechada'}
+                              </button>
+                            ))}
+                            <button onClick={() => setPositionMenu(null)} className="text-[7px] text-white/20 hover:text-white/50 text-center mt-0.5">Cancelar</button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {!card && <span className="text-[7px] font-black text-white/10 uppercase">Combatente</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SIDEBAR DIREITA: deck + log */}
+            <div className="w-52 flex flex-col items-center gap-4 self-center shrink-0">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-20 h-28 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl overflow-hidden relative"
+                  style={{ backgroundImage: 'url("/fundo.webp")' }}>
+                  <div className="absolute inset-0 bg-black/20" />
+                </div>
+                <span className="text-[8px] font-black text-white/30 uppercase">Deck</span>
+                <span className="text-sm font-mono text-white/60 font-black">{myDeck.length}</span>
+              </div>
+              <div className="w-full max-h-72 overflow-y-auto bg-black/50 rounded-xl border border-white/10 p-2 custom-scrollbar">
+                {history.slice(0, 30).map((msg, idx) => (
+                  <div key={idx} className={`text-[9px] font-mono py-0.5 border-b border-white/5 last:border-0 ${idx === 0 ? 'text-yellow-400' : 'text-white/40'}`}>
+                    {msg}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Meu Campo */}
-          <div className="flex gap-2 justify-center items-center">
-            {myField.map((card, i) => (
-              <div key={`my-${i}`}>
-                <div
-                  onClick={() => {
-                    if (turnPhase === 'confront' && card && card.position === 'attack' && !card.attackedThisTurn && !card.summonedThisTurn) {
-                      setAttackingCardId(prev => prev === card.id ? null : card.id);
-                    } else if (turnPhase === 'organize' && card && !pendingCard && !sacrificeMode) {
-                      setPositionMenu(prev => prev === i ? null : i);
-                    } else {
-                      handleFieldSlotClick(i);
-                    }
-                  }}
-                  className={`w-24 h-36 rounded-xl border-2 border-dashed flex items-center justify-center relative shrink-0 transition-all cursor-pointer
-                    ${attackingCardId === card?.id ? 'border-yellow-400 shadow-[0_0_16px_rgba(234,179,8,0.5)] scale-110 z-20' : ''}
-                    ${isValidSummonSlot(i) ? 'border-emerald-400 bg-emerald-400/10' : ''}
-                    ${sacrificeMode?.selected.includes(card?.id ?? '') ? 'border-red-500 bg-red-500/20' : ''}
-                    ${sacrificeMode && sacrificeMode.selected.length < sacrificeMode.needed && card?.level === 'Neutro' && !sacrificeMode.selected.includes(card?.id ?? '') ? 'border-red-400 bg-red-400/10' : ''}
-                    ${!attackingCardId && !isValidSummonSlot(i) && !sacrificeMode ? 'border-white/10 bg-black/20' : ''}`}
-                >
-                  <AnimatePresence mode="popLayout">
-                    {card && (
-                      <motion.div key={card.id}
-                        initial={{ opacity: 0, scale: 0.2, y: 150 }}
-                        animate={{
-                          opacity: 1, scale: 1,
-                          rotate: card.position === 'defense-open' ? 90 : 0,
-                          y: attackAnim?.id === card.id ? -100 : 0,
-                          filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(40deg)' : 'brightness(1)',
-                        }}
-                        exit={{ opacity: 0, scale: 1.3, filter: 'blur(8px)' }}
-                        transition={{ rotate: { type: 'spring', stiffness: 260, damping: 22 } }}
-                        className={`w-full h-full relative rounded-xl overflow-hidden ring-2 ${positionRing[card.position]}`}
-                        style={{
-                          backgroundImage: card.position === 'defense-closed' ? 'url("/fundo.webp")' : `url("${card.image}")`,
-                          backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-                        }}
-                      >
-                        {card.position === 'attack' && (
-                          <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                            <span className="text-[9px] font-black text-red-400">{card.atq}</span>
-                            <span className="text-[9px] font-black text-blue-300">{card.def}</span>
-                          </div>
-                        )}
-                        {(card.attackedThisTurn || card.summonedThisTurn) && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-xl">
-                            <span className="text-[6px] font-black text-white/50 uppercase">
-                              {card.attackedThisTurn ? 'Atacou' : 'Invocado'}
-                            </span>
-                          </div>
-                        )}
-                        {sacrificeMode?.selected.includes(card.id) && (
-                          <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                            <span className="text-[7px] font-black text-white">✓</span>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Menu de posição */}
-                  <AnimatePresence>
-                    {positionMenu === i && card && isMyTurn && turnPhase === 'organize' && (
-                      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        onClick={e => e.stopPropagation()}
-                        className="absolute -top-[88px] left-1/2 -translate-x-1/2 z-[70] flex flex-col gap-1 bg-black/90 border border-white/15 rounded-xl p-2 shadow-xl w-28">
-                        <div className="text-[6px] font-black text-white/30 uppercase tracking-widest text-center mb-0.5">Posição</div>
-                        {(['attack', 'defense-open', 'defense-closed'] as Position[]).map(pos => (
-                          <button key={pos} onClick={() => setCardPosition(i, pos)}
-                            className={`text-[8px] font-black uppercase px-2 py-1 rounded-lg transition-all ${card.position === pos ? 'bg-yellow-500/20 text-yellow-400' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}>
-                            {pos === 'attack' ? '⚔ Ataque' : pos === 'defense-open' ? '🛡 Def. Aberta' : '🌑 Def. Fechada'}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* HUD + log + deck */}
+          {/* HUD Jogador (rodapé) */}
           <div className="w-full flex justify-between items-end px-10 mt-auto pointer-events-none">
-            {/* Info jogador */}
             <div className="pointer-events-auto flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/5 mb-2">
               <div className="w-10 h-10 rounded-xl border border-yellow-500/30 overflow-hidden">
                 <img src="/hero_avatar.webp" className="w-full h-full object-cover" alt={username} />
@@ -901,52 +928,53 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
               </div>
             </div>
 
-            {/* Log */}
-            <div className="pointer-events-auto w-52 max-h-40 overflow-y-auto bg-black/50 rounded-xl border border-white/10 p-2 mb-2 custom-scrollbar">
-              {history.slice(0, 20).map((msg, i) => (
-                <div key={i} className={`text-[9px] font-mono py-0.5 border-b border-white/5 last:border-0 ${i === 0 ? 'text-yellow-400' : 'text-white/40'}`}>
-                  {msg}
-                </div>
-              ))}
+            {/* Mão do jogador (centro-baixo) */}
+            <div className="pointer-events-auto flex flex-col items-center gap-1 fixed bottom-2 left-1/2 -translate-x-1/2">
+              <span className="text-[7px] font-black text-white/20 uppercase tracking-[0.3em]">Sua Mão</span>
+              <div className="flex justify-center -space-x-3">
+                <AnimatePresence>
+                  {myHand.map((card, i) => {
+                    const isSelected = pendingCard?.id === card.id;
+                    return (
+                      <motion.div key={card.id}
+                        initial={{ opacity: 0, scale: 0.5, y: 100 }}
+                        animate={{ opacity: 1, scale: 1, y: isSelected ? -28 : 0, zIndex: isSelected ? 50 : i, rotate: isSelected ? 0 : (i - Math.floor(myHand.length / 2)) * 2.5 }}
+                        exit={{ opacity: 0, scale: 0.5, y: -100 }}
+                        onClick={() => {
+                          if (!isMyTurn || turnPhase !== 'organize') return;
+                          if (pendingCard?.id === card.id) { setPendingCard(null); setSacrificeMode(null); return; }
+                          if (card.level !== 'Neutro') {
+                            const lvlIdx = LEVEL_ORDER.indexOf(card.level);
+                            const canScale = myField.some(c => c && LEVEL_ORDER.indexOf(c.level) === lvlIdx - 1);
+                            const canSacrifice = myField.filter(c => c?.level === 'Neutro').length >= lvlIdx;
+                            if (!canScale && canSacrifice) { startSacrificeMode(card); return; }
+                            if (!canScale && !canSacrifice) { addHistory(`● Sem condição para invocar ${card.name}`); return; }
+                          }
+                          setPendingCard(card); setSacrificeMode(null);
+                        }}
+                        className="relative w-20 h-28 cursor-pointer"
+                      >
+                        {isSelected && <div className="absolute -inset-2 bg-yellow-400/20 blur-lg rounded-full animate-pulse z-0" />}
+                        <div className="relative w-full h-full rounded-xl overflow-hidden border-2 border-white/10 hover:border-white/30 transition-all"
+                          style={{
+                            borderColor: isSelected ? '#facc15' : undefined,
+                            backgroundImage: `url("${card.image}")`,
+                            backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: '#111',
+                          }}>
+                          <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
+                            <span className="text-[8px] font-black text-red-400">{card.atq}</span>
+                            <span className="text-[8px] font-black text-blue-300">{card.def}</span>
+                          </div>
+                          <div className="absolute top-1 left-1 px-1 rounded text-[6px] font-black uppercase bg-black/70 text-white/60">
+                            {card.level}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
             </div>
-
-            {/* Deck */}
-            <div className="pointer-events-auto flex flex-col items-center gap-1 mb-2">
-              <div className="w-14 h-20 rounded-xl border-2 border-white/20 bg-cover bg-center" style={{ backgroundImage: 'url("/fundo.webp")' }} />
-              <span className="text-[8px] font-black text-white/30 uppercase">Deck</span>
-              <span className="text-sm font-mono text-white/60 font-black">{myDeck.length}</span>
-            </div>
-          </div>
-
-          {/* Minha Mão */}
-          <div className="flex gap-2 justify-center items-end pb-1 overflow-x-auto">
-            {myHand.map((card) => (
-              <motion.div key={card.id} whileHover={{ y: -12, scale: 1.05 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                onClick={() => {
-                  if (!isMyTurn || turnPhase !== 'organize') return;
-                  if (pendingCard?.id === card.id) { setPendingCard(null); return; }
-                  if (card.level !== 'Neutro') {
-                    const lvlIdx = LEVEL_ORDER.indexOf(card.level);
-                    const canScale = myField.some(c => c && LEVEL_ORDER.indexOf(c.level) === lvlIdx - 1);
-                    const canSacrifice = myField.filter(c => c?.level === 'Neutro').length >= lvlIdx;
-                    if (!canScale && canSacrifice) { startSacrificeMode(card); return; }
-                    if (!canScale && !canSacrifice) { addHistory(`● Sem condição para invocar ${card.name}`); return; }
-                  }
-                  setPendingCard(card);
-                  setSacrificeMode(null);
-                }}
-                className={`relative w-20 h-28 rounded-xl border-2 shrink-0 cursor-pointer overflow-hidden transition-all
-                  ${pendingCard?.id === card.id ? 'border-yellow-400 shadow-[0_0_16px_rgba(234,179,8,0.5)]' : 'border-white/20 hover:border-white/50'}
-                  ${(!isMyTurn || turnPhase !== 'organize') ? 'opacity-40 cursor-not-allowed' : ''}`}
-                style={{ backgroundImage: `url("${card.image}")`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: '#0a0a0a' }}
-              >
-                <div className="absolute top-1 left-1 px-1 py-0.5 rounded text-[7px] font-black bg-black/70 text-white/60">{card.level}</div>
-                <div className="absolute bottom-1 inset-x-1 flex justify-between px-1">
-                  <span className="text-[8px] font-black text-red-400">{card.atq}</span>
-                  <span className="text-[8px] font-black text-blue-300">{card.def}</span>
-                </div>
-              </motion.div>
-            ))}
           </div>
         </div>
 
@@ -954,21 +982,33 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
         <AnimatePresence>
           {positionChoice && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-md">
+              onClick={() => { setPositionChoice(null); setPendingCard(null); }}
+              className="absolute inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer">
               <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-[#0e0e10] border border-white/10 rounded-3xl p-8 text-center space-y-6 max-w-sm w-full mx-4">
-                <p className="text-[9px] text-white/30 uppercase tracking-widest">Escolha a posição para "{positionChoice.card.name}"</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {([['attack', '⚔', 'Ataque'], ['defense-open', '🛡', 'Def. Aberta'], ['defense-closed', '🌑', 'Def. Fechada']] as const).map(([pos, icon, label]) => (
+                onClick={e => e.stopPropagation()}
+                className="bg-black/90 border border-yellow-400/20 rounded-3xl p-8 max-w-lg w-full mx-4 cursor-default shadow-[0_0_60px_rgba(255,215,0,0.1)]">
+                <h3 className="text-lg font-black text-yellow-400 uppercase tracking-[0.2em] text-center mb-1">Posição de Invocação</h3>
+                <p className="text-[9px] text-white/30 text-center uppercase tracking-widest mb-6">Escolha a posição para "{positionChoice.card.name}"</p>
+                <div className="flex gap-4 justify-center">
+                  {([
+                    ['attack',         '⚔', 'Ataque',      'Face-up vertical'],
+                    ['defense-open',   '🛡', 'Def. Aberta', 'Face-up horizontal'],
+                    ['defense-closed', '🌑', 'Def. Fechada','Face-down oculto'],
+                  ] as const).map(([pos, icon, label, sub]) => (
                     <button key={pos} onClick={() => confirmSummon(pos)}
-                      className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all group">
+                      className="group flex flex-col items-center gap-3 p-4 rounded-2xl border-2 border-white/10 hover:border-white/30 hover:bg-white/5 transition-all w-32">
                       <span className="text-2xl">{icon}</span>
-                      <span className="text-[9px] font-black text-white/60 group-hover:text-white uppercase">{label}</span>
+                      <div>
+                        <div className="text-[10px] font-black text-white/60 group-hover:text-white uppercase">{label}</div>
+                        <div className="text-[7px] text-white/20 group-hover:text-white/40">{sub}</div>
+                      </div>
                     </button>
                   ))}
                 </div>
                 <button onClick={() => { setPositionChoice(null); setPendingCard(null); }}
-                  className="text-[9px] text-white/20 hover:text-white/40 uppercase tracking-widest transition-colors">Cancelar</button>
+                  className="mt-6 w-full py-2 text-[8px] font-black uppercase text-white/20 hover:text-white/50 transition-colors tracking-widest">
+                  Cancelar
+                </button>
               </motion.div>
             </motion.div>
           )}
