@@ -32,16 +32,18 @@ import {
 import LoadingScreen from './LoadingScreen';
 import InventoryView from './InventoryView';
 import ShopView from './ShopView';
+import SettingsView from './SettingsView';
 import { getProfile, getTotalCardCount } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
 
 interface PlayerPanelProps {
   userId: string;
   onStartGame: () => void;
+  onStartPVP: () => void;
   onLogout: () => void;
 }
 
-export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPanelProps) {
+export default function PlayerPanel({ userId, onStartGame, onStartPVP, onLogout }: PlayerPanelProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -142,10 +144,16 @@ export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPan
         </nav>
 
         <div className="px-4 pt-4 border-t border-white/5 space-y-2">
-          <button disabled title="Em Breve" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl opacity-30 cursor-not-allowed text-gray-600 uppercase tracking-widest text-[10px] font-black">
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all uppercase tracking-widest text-[10px] font-black ${
+              activeTab === 'settings'
+                ? 'bg-gold/10 text-gold border border-gold/20'
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
+            }`}
+          >
             <Settings className="w-4 h-4" />
             Configurações
-            <span className="ml-auto text-[7px] font-black text-white/20 uppercase tracking-widest">Em Breve</span>
           </button>
           <button 
             onClick={onLogout}
@@ -275,8 +283,8 @@ export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPan
                 </div>
 
                 <div className="grid grid-cols-2 gap-8">
-                  {/* Game Card 1 */}
-                  <div 
+                  {/* Game Card 1 — VS IA */}
+                  <div
                     onClick={onStartGame}
                     className="group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] cursor-pointer"
                   >
@@ -301,19 +309,41 @@ export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPan
                     </div>
                   </div>
 
-                  {/* Game Card 2 */}
-                  <div className="group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] cursor-not-allowed opacity-60">
+                  {/* Game Card 2 — PVP */}
+                  <div
+                    onClick={cardCount >= 5 ? onStartPVP : undefined}
+                    className={`group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] ${cardCount >= 5 ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                  >
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
-                    <img src="/boss_raid.webp" className="w-full h-full object-cover opacity-40 filter blur-sm group-hover:blur-0 transition-all duration-700" alt="Chefe de Raide" />
-                    
+                    <img src="/boss_raid.webp" className="w-full h-full object-cover opacity-60 group-hover:scale-110 group-hover:opacity-100 transition-all duration-700" alt="PVP" />
+
+                    <div className="absolute inset-x-8 bottom-8 z-20 space-y-2">
+                       <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#c9a84c] animate-pulse" />
+                          <span className="text-[9px] font-black text-[#c9a84c] uppercase tracking-widest">PVP — TESTE ALFA</span>
+                       </div>
+                       <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Duelo PVP</h3>
+                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Desafie outro jogador em tempo real via link de sala.</p>
+                       <div className="flex items-center gap-4 mt-4 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                         {cardCount >= 5
+                           ? <button className="px-6 py-2.5 bg-[#c9a84c] text-black text-[10px] font-black uppercase tracking-widest rounded-xl">Entrar no Saguão</button>
+                           : <span className="text-[9px] text-white/40 uppercase tracking-widest">Precisa de 5 cartas</span>}
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Placeholder Game Card 3 — oculto para manter o grid */}
+                  <div className="hidden group relative h-80 rounded-[2rem] overflow-hidden border border-white/5 bg-[#0a0a0c] cursor-not-allowed opacity-60">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent z-10" />
+                    <img src="/boss_raid.webp" className="w-full h-full object-cover opacity-40 filter blur-sm" alt="" />
                     <div className="absolute inset-x-8 bottom-8 z-20 space-y-2">
                        <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-gray-500" />
                           <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">EM BREVE</span>
                        </div>
-                       <h3 className="text-3xl font-black text-white/40 uppercase tracking-tighter italic">Caminho da Sombras</h3>
+                       <h3 className="text-3xl font-black text-white/40 uppercase tracking-tighter italic">Caminho das Sombras</h3>
                        <p className="text-[10px] text-gray-700 font-bold uppercase tracking-widest">Modo campanha focado em história e recompensas exclusivas.</p>
-                       
+
                        <div className="flex items-center gap-4 mt-4">
                           <div className="px-6 py-2.5 bg-white/5 border border-white/10 text-white/20 text-[10px] font-black uppercase tracking-widest rounded-xl">Bloqueado</div>
                           <span className="text-[10px] font-mono font-black text-white/10 italic">Nível 50 Exigido</span>
@@ -369,6 +399,12 @@ export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPan
             <InventoryView userId={userId} />
           ) : activeTab === 'marketplace' ? (
             <ShopView userId={userId} onCardsChanged={refreshCardCount} />
+          ) : activeTab === 'settings' ? (
+            <SettingsView
+              userId={userId}
+              currentUsername={profile?.username ?? ''}
+              onUsernameChanged={name => setProfile(p => p ? { ...p, username: name } : p)}
+            />
           ) : (
             <div className="flex-1 flex items-center justify-center">
                <div className="text-center space-y-4">

@@ -12,10 +12,15 @@ import Arena from './components/Arena';
 import AdminPanel from './components/AdminPanel';
 import PlayerPanel from './components/PlayerPanel';
 import AuthView from './components/AuthView';
+import PVPLobby from './components/PVPLobby';
+import PVPArena from './components/PVPArena';
 
 export default function App() {
-  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'arena' | 'admin'>('landing');
+  const [view, setView] = useState<'landing' | 'auth' | 'dashboard' | 'arena' | 'admin' | 'pvp-lobby' | 'pvp-arena'>('landing');
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [pvpRoom,   setPvpRoom]   = useState('');
+  const [pvpIsHost, setPvpIsHost] = useState(false);
+  const [pvpOpponent, setPvpOpponent] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -61,7 +66,34 @@ export default function App() {
   }
 
   if (view === 'arena') {
-    return <Arena onClose={() => setView('dashboard')} />;
+    return <Arena onClose={() => setView('dashboard')} userId={session?.user.id} />;
+  }
+
+  if (view === 'pvp-lobby') {
+    return (
+      <PVPLobby
+        userId={session!.user.id}
+        username={session!.user.email?.split('@')[0] ?? 'Jogador'}
+        onMatch={(roomId, isHost, opponentName) => {
+          setPvpRoom(roomId); setPvpIsHost(isHost); setPvpOpponent(opponentName);
+          setView('pvp-arena');
+        }}
+        onClose={() => setView('dashboard')}
+      />
+    );
+  }
+
+  if (view === 'pvp-arena') {
+    return (
+      <PVPArena
+        roomId={pvpRoom}
+        isHost={pvpIsHost}
+        userId={session!.user.id}
+        username={session!.user.email?.split('@')[0] ?? 'Jogador'}
+        opponentName={pvpOpponent}
+        onClose={() => setView('dashboard')}
+      />
+    );
   }
 
   if (view === 'dashboard') {
@@ -69,6 +101,7 @@ export default function App() {
       <PlayerPanel
         userId={session!.user.id}
         onStartGame={() => setView('arena')}
+        onStartPVP={() => setView('pvp-lobby')}
         onLogout={async () => {
           await supabase.auth.signOut();
           setView('landing');

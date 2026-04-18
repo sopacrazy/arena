@@ -37,10 +37,12 @@ interface Card {
   position: Position;
   positionChangedThisTurn: boolean;
   attackedThisTurn: boolean;
+  summonedThisTurn: boolean;  // Sickness: não pode atacar no turno em que foi invocado
 }
 
 interface ArenaProps {
   onClose: () => void;
+  userId?: string;
 }
 
 // ─── CATÁLOGO DE CARTAS ───────────────────────────────────────────────────────
@@ -94,7 +96,7 @@ const DECK_POOL: Card[] = CATALOG.flatMap((entry, ci) =>
     atq: entry.atq, def: entry.def, desc: entry.desc, image: entry.img,
     hasPierce: entry.hasPierce, revealEffect: entry.revealEffect,
     position: 'attack' as Position,
-    positionChangedThisTurn: false, attackedThisTurn: false,
+    positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false,
   }))
 );
 
@@ -141,9 +143,16 @@ function useArenaScale(designW = 1280, designH = 768) {
   return scale;
 }
 
-export default function Arena({ onClose }: ArenaProps) {
+export default function Arena({ onClose, userId }: ArenaProps) {
   const arenaScale = useArenaScale();
   const [isLoading, setIsLoading] = useState(true);
+  const [playerName, setPlayerName] = useState('Jogador');
+  useEffect(() => {
+    if (!userId) return;
+    import('../lib/supabase').then(({ getProfile }) =>
+      getProfile(userId).then(p => { if (p) setPlayerName(p.username); })
+    );
+  }, [userId]);
   const arenaImages = [
     '/arena.webp', '/enemy_avatar.webp', '/hero_avatar.webp', '/fundo.webp',
     ...CATALOG.map(c => c.img),
@@ -201,7 +210,7 @@ export default function Arena({ onClose }: ArenaProps) {
   const [inspectedCard,   setInspectedCard]   = useState<Card | null>(null);
   const [hoveredCard,     setHoveredCard]     = useState<Card | null>(null);
   const [isTransitioning, setIsTransitioning] = useState<string | null>(null);
-  const [timeLeft,        setTimeLeft]        = useState(60);
+  const [timeLeft,        setTimeLeft]        = useState(30);
   const [isViewingExile,  setIsViewingExile]  = useState<null | 'player' | 'opponent'>(null);
   const [history,         setHistory]         = useState<string[]>(['● COMBATE INICIADO', '● BOA SORTE!']);
   const [attackAnim,      setAttackAnim]      = useState<{ id: string; targetId: string; isOpponent: boolean } | null>(null);
@@ -224,15 +233,19 @@ export default function Arena({ onClose }: ArenaProps) {
   const opponentFieldRef = useRef(opponentField);
   const playerPBRef      = useRef(playerPB);
   const opponentPBRef    = useRef(opponentPB);
+  const playerDeckRef    = useRef(playerDeck);
+  const turnRef          = useRef<'player' | 'opponent'>('player');
   useEffect(() => { playerFieldRef.current   = playerField;   }, [playerField]);
   useEffect(() => { opponentFieldRef.current = opponentField; }, [opponentField]);
   useEffect(() => { playerPBRef.current      = playerPB;      }, [playerPB]);
   useEffect(() => { opponentPBRef.current    = opponentPB;    }, [opponentPB]);
+  useEffect(() => { playerDeckRef.current    = playerDeck;    }, [playerDeck]);
+  useEffect(() => { turnRef.current          = turn;          }, [turn]);
 
   // ── Timer de turno (60s) ─────────────────────────────────────────────────
   useEffect(() => {
     if (gameStatus !== 'playing' || turn !== 'player' || isTransitioning) return;
-    setTimeLeft(60);
+    setTimeLeft(30);
     const t = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) { handleEndTurn(); return 0; }
@@ -256,26 +269,26 @@ export default function Arena({ onClose }: ArenaProps) {
 
   // ─── FASE DE COMPRA ───────────────────────────────────────────────────────
   // Regra: se deck vazio ao tentar comprar → derrota
-  const drawPlayerCard = (deck?: Card[]) => {
-    setPlayerDeck(currentDeck => {
-      const d = deck ?? currentDeck;
-      if (d.length === 0) {
-        // Condição de derrota: deck esgotado na compra
-        setGameStatus('defeat');
-        addHistory('● DECK VAZIO! Não foi possível comprar carta — DERROTA!');
-        return d;
-      }
-      const [next, ...rest] = d;
-      const newCard = { ...next, id: `ph-draw-${Date.now()}` };
-      setPlayerHand(prev => [...prev, newCard]);
-      addHistory('● Fase de Compra: +1 carta');
-      return rest;
-    });
+  const drawPlayerCard = () => {
+    const deck = playerDeckRef.current;
+    if (deck.length === 0) {
+      setGameStatus('defeat');
+      addHistory('● DECK VAZIO! Não foi possível comprar carta — DERROTA!');
+      return;
+    }
+    const [next, ...rest] = deck;
+    const newCard = { ...next, id: `ph-draw-${Date.now()}-${Math.random()}` };
+    playerDeckRef.current = rest;
+    setPlayerDeck(rest);
+    setPlayerHand(prev => [...prev, newCard]);
+    addHistory('● Fase de Compra: +1 carta');
   };
 
   // ─── REINICIAR ────────────────────────────────────────────────────────────
   const resetGame = () => {
     const { deck, hand } = dealInitial();
+    playerDeckRef.current = deck;
+    turnRef.current = 'player';
     setPlayerDeck(deck); setPlayerHand(hand);
     setOpponentHandCount(5);
     setPlayerField(Array(5).fill(null)); setOpponentField(Array(5).fill(null));
@@ -283,10 +296,12 @@ export default function Arena({ onClose }: ArenaProps) {
     setPlayerReactions(Array(3).fill(null)); setOpponentReactions(Array(3).fill(null));
     setPlayerExile([]); setPlayerDiscard([]); setOpponentExile([]);
     setPlayerPB(30); setOpponentPB(30);
+    playerPBRef.current = 30; opponentPBRef.current = 30;
     setTurn('player'); setTurnPhase('organize'); setTurnCount(1);
     setPlayedCombatantThisTurn(false); setGameStatus('playing');
     setPendingCard(null); setAttackingCardId(null);
-    setSacrificeMode(null); setPositionChoice(null);
+    setSacrificeMode(null); setPositionChoice(null); setPositionMenu(null);
+    setIsTransitioning(null); setTimeLeft(30); setAttackAnim(null);
     setHistory(['● PARTIDA REINICIADA', '● BOA SORTE!']);
   };
 
@@ -300,7 +315,8 @@ export default function Arena({ onClose }: ArenaProps) {
 
   // ─── FIM DO TURNO ─────────────────────────────────────────────────────────
   const handleEndTurn = async () => {
-    if (turn !== 'player') return;
+    if (turnRef.current !== 'player') return;
+    turnRef.current = 'opponent'; // bloqueia re-entrada antes do setState propagar
 
     // Regra: Carta de Bênção vai ao Exílio no fim do turno (salvo efeito contrário)
     if (playerBlessing) {
@@ -311,7 +327,7 @@ export default function Arena({ onClose }: ArenaProps) {
 
     // Reset estados de turno dos combatentes aliados
     setPlayerField(prev => prev.map(c =>
-      c ? { ...c, positionChangedThisTurn: false, attackedThisTurn: false } : null
+      c ? { ...c, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false } : null
     ));
 
     setTurn('opponent');
@@ -349,7 +365,7 @@ export default function Arena({ onClose }: ArenaProps) {
           const target = neutrosOnField[0];
           const replaceIdx = curField.findIndex(c => c?.id === target.id);
           if (replaceIdx !== -1) {
-            const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false };
+            const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
             setOpponentExile(prev => [...prev, target]);
             setOpponentField(prev => { const n = [...prev]; n[replaceIdx] = newCard; return n; });
             setOpponentHandCount(prev => Math.max(0, prev - 1));
@@ -365,7 +381,7 @@ export default function Arena({ onClose }: ArenaProps) {
         const neutroEntries = CATALOG.filter(e => e.level === 'Neutro');
         const entry = neutroEntries[Math.floor(Math.random() * neutroEntries.length)];
         const pos: Position = Math.random() < 0.3 ? 'defense-closed' : 'attack';
-        const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: pos, positionChangedThisTurn: false, attackedThisTurn: false };
+        const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: pos, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
         setOpponentField(prev => { const n = [...prev]; n[emptySlots[0]] = newCard; return n; });
         setOpponentHandCount(prev => Math.max(0, prev - 1));
         addHistory(`● Malakor invocou: ${newCard.name} (${positionLabel[pos]})`);
@@ -374,11 +390,11 @@ export default function Arena({ onClose }: ArenaProps) {
     }
 
     // FASE DE CONFRONTO: declarar ataques
-    // Regra do Primeiro Turno: quem inicia NÃO pode atacar — Malakor ataca do turno 2 em diante
-    if (turnCount >= 2) {
+    // Regra do Primeiro Turno aplica-se apenas a quem inicia (o jogador) — Malakor sempre pode atacar
+    {
       addHistory('● Malakor: Fase de Confronto');
       const attackers = opponentFieldRef.current.filter(
-        (c): c is Card => c !== null && c.position === 'attack' && !c.attackedThisTurn
+        (c): c is Card => c !== null && c.position === 'attack' && !c.attackedThisTurn && !c.summonedThisTurn
       );
       for (const attacker of attackers) {
         await resolveOpponentAttack(attacker);
@@ -395,7 +411,7 @@ export default function Arena({ onClose }: ArenaProps) {
 
     // Reset estados de turno dos combatentes inimigos
     setOpponentField(prev => prev.map(c =>
-      c ? { ...c, positionChangedThisTurn: false, attackedThisTurn: false } : null
+      c ? { ...c, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false } : null
     ));
 
     // FIM DO TURNO DO OPONENTE → inicia turno do jogador
@@ -591,6 +607,9 @@ export default function Arena({ onClose }: ArenaProps) {
     if (attacker.attackedThisTurn) {
       addHistory('● Este combatente já atacou neste turno'); setAttackingCardId(null); return;
     }
+    if (attacker.summonedThisTurn) {
+      addHistory('● Sickness de invocação: este combatente não pode atacar no turno em que foi invocado'); setAttackingCardId(null); return;
+    }
     // Regra do Primeiro Turno: quem inicia NÃO pode atacar no 1º turno
     if (turnCount === 1) {
       addHistory('● Regra: não é possível atacar no primeiro turno'); setAttackingCardId(null); return;
@@ -700,7 +719,7 @@ export default function Arena({ onClose }: ArenaProps) {
       }
     } else if (pendingCard.cardType === 'Bencao') {
       if (playerBlessing !== null) { addHistory('● Área de Bênção já ocupada!'); return; }
-      setPlayerBlessing({ ...pendingCard, id: `pb-${Date.now()}`, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false });
+      setPlayerBlessing({ ...pendingCard, id: `pb-${Date.now()}`, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false });
       setPlayerHand(prev => prev.filter(c => c.id !== pendingCard.id));
       setPlayedCombatantThisTurn(true);
       addHistory(`● Bênção ativada: '${pendingCard.name}'`);
@@ -713,7 +732,7 @@ export default function Arena({ onClose }: ArenaProps) {
     if (pendingCard.cardType !== 'Reacao') return;
     if (playerReactions[slotIndex] !== null) { addHistory('● Slot de Reação já ocupado!'); return; }
     if (playerReactions.filter(Boolean).length >= 3) { addHistory('● Máximo de 3 Reações no campo'); return; }
-    const newCard = { ...pendingCard, id: `pr-${Date.now()}`, position: 'attack' as Position, positionChangedThisTurn: false, attackedThisTurn: false };
+    const newCard = { ...pendingCard, id: `pr-${Date.now()}`, position: 'attack' as Position, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false };
     setPlayerReactions(prev => { const n = [...prev]; n[slotIndex] = newCard; return n; });
     setPlayerHand(prev => prev.filter(c => c.id !== pendingCard.id));
     addHistory(`● Preparou Reação: '${pendingCard.name}'`);
@@ -725,7 +744,7 @@ export default function Arena({ onClose }: ArenaProps) {
     if (!positionChoice) return;
     const { card, slotIndex, replaced, sacrificed } = positionChoice;
 
-    const newCard: Card = { ...card, id: `pf-${Date.now()}`, position, positionChangedThisTurn: false, attackedThisTurn: false };
+    const newCard: Card = { ...card, id: `pf-${Date.now()}`, position, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
     setPlayerField(prev => { const n = [...prev]; n[slotIndex] = newCard; return n; });
 
     // Substituição por Escala: carta substituída vai ao Exílio
@@ -931,11 +950,11 @@ export default function Arena({ onClose }: ArenaProps) {
             {/* Timer */}
             {turn === 'player' && (
               <div className="flex flex-col items-center gap-1">
-                <div className={`text-2xl font-black font-mono ${timeLeft <= 15 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
+                <div className={`text-2xl font-black font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
                   {String(timeLeft).padStart(2, '0')}s
                 </div>
                 <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div animate={{ width: `${(timeLeft / 60) * 100}%` }} className={`h-full ${timeLeft <= 15 ? 'bg-red-500' : 'bg-yellow-400'}`} />
+                  <motion.div animate={{ width: `${(timeLeft / 30) * 100}%` }} className={`h-full ${timeLeft <= 10 ? 'bg-red-500' : 'bg-yellow-400'}`} />
                 </div>
               </div>
             )}
@@ -1088,8 +1107,8 @@ export default function Arena({ onClose }: ArenaProps) {
                           initial={{ opacity: 0, scale: 0.2, y: 150, rotate: 0 }}
                           animate={{
                             opacity: 1, scale: 1,
-                            // defense-open: carta de cabeça para baixo (face aparente, girada 180°)
-                            rotate: card.position === 'defense-open' ? 180 : 0,
+                            // defense-open: carta deitada (face aparente, girada 90°)
+                            rotate: card.position === 'defense-open' ? 90 : 0,
                             y: attackAnim?.id === card.id ? -100 : 0,
                             filter: attackAnim?.targetId === card.id ? 'brightness(2) hue-rotate(40deg)' : 'brightness(1)',
                           }}
@@ -1206,7 +1225,7 @@ export default function Arena({ onClose }: ArenaProps) {
           </div>
 
           {/* SIDEBAR DIREITA: deck + log */}
-          <div className="w-36 flex flex-col items-center gap-4 self-center shrink-0">
+          <div className="w-52 flex flex-col items-center gap-4 self-center shrink-0">
             {/* Deck */}
             <div className="flex flex-col items-center gap-1">
               <div className="w-20 h-28 rounded-xl border-2 border-white/20 bg-cover bg-center shadow-xl overflow-hidden relative"
@@ -1218,9 +1237,9 @@ export default function Arena({ onClose }: ArenaProps) {
             </div>
 
             {/* Log de batalha */}
-            <div className="w-full max-h-48 overflow-y-auto bg-black/40 rounded-xl border border-white/5 p-2 custom-scrollbar">
-              {history.slice(0, 15).map((msg, i) => (
-                <div key={i} className={`text-[7px] font-mono py-0.5 border-b border-white/5 last:border-0 ${i === 0 ? 'text-yellow-400' : 'text-white/30'}`}>
+            <div className="w-full max-h-72 overflow-y-auto bg-black/50 rounded-xl border border-white/10 p-2 custom-scrollbar">
+              {history.slice(0, 30).map((msg, i) => (
+                <div key={i} className={`text-[9px] font-mono py-0.5 border-b border-white/5 last:border-0 ${i === 0 ? 'text-yellow-400' : 'text-white/40'}`}>
                   {msg}
                 </div>
               ))}
@@ -1236,7 +1255,7 @@ export default function Arena({ onClose }: ArenaProps) {
               <img src="/hero_avatar.webp" className="w-full h-full object-cover" alt="Jogador" />
             </div>
             <div className="space-y-1">
-              <div className="text-[10px] font-black text-white uppercase">Aeliana Solari</div>
+              <div className="text-[10px] font-black text-white uppercase">{playerName}</div>
               <div className="flex items-center gap-2">
                 <div className="w-28 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
                   <motion.div animate={{ width: `${(playerPB / 30) * 100}%` }} className="h-full bg-emerald-500" />
