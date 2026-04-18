@@ -38,16 +38,21 @@ export default function PVPLobby({ userId, username, onMatch, onClose }: PVPLobb
           const host = sorted[0];
           const guest = sorted[1];
 
-          // Somente o host cria e divulga a sala
+          // Somente o host cria a sala e avisa o guest
           if (host.id === userId) {
+            matched = true; // bloqueia re-entrada antes de qualquer await
+            setStatus('matched');
             const roomId = `pvp_${Date.now()}`;
-            setTimeout(() => {
-              channel.send({
-                type: 'broadcast',
-                event: 'match:found',
-                payload: { roomId, hostId: host.id, hostName: host.username, guestId: guest.id, guestName: guest.username },
-              });
-            }, 300);
+            const opponentName = guest.username;
+
+            // Broadcast para o guest, depois navega diretamente (self: false não entrega ao remetente)
+            channel.send({
+              type: 'broadcast',
+              event: 'match:found',
+              payload: { roomId, hostId: host.id, hostName: host.username, guestId: guest.id, guestName: guest.username },
+            });
+            // Aguarda um tick para o Supabase enviar o broadcast antes de desmontar o canal
+            setTimeout(() => onMatch(roomId, true, opponentName), 500);
           }
         }
       })
@@ -56,9 +61,9 @@ export default function PVPLobby({ userId, username, onMatch, onClose }: PVPLobb
         if (payload.hostId !== userId && payload.guestId !== userId) return;
         matched = true;
         setStatus('matched');
-        const isHost = payload.hostId === userId;
-        const opponentName: string = isHost ? payload.guestName : payload.hostName;
-        setTimeout(() => onMatch(payload.roomId, isHost, opponentName), 600);
+        // guest recebe o broadcast e navega
+        const opponentName: string = payload.hostName;
+        setTimeout(() => onMatch(payload.roomId, false, opponentName), 500);
       });
 
     channel.subscribe(async (s) => {

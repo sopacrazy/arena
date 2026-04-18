@@ -129,6 +129,7 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
   const opponentPBRef    = useRef(opponentPB);
   const isMyTurnRef      = useRef(isMyTurn);
   const myBlessingRef    = useRef(myBlessing);
+  const gameStartedRef   = useRef(false); // impede dealCards ser chamado mais de uma vez
 
   useEffect(() => { myFieldRef.current       = myField;       }, [myField]);
   useEffect(() => { myPBRef.current          = myPB;          }, [myPB]);
@@ -207,7 +208,8 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
         const count = Object.keys(state).length;
         setOpponentConnected(count >= 2);
 
-        if (count >= 2) {
+        if (count >= 2 && !gameStartedRef.current) {
+          gameStartedRef.current = true;
           dealCards();
           if (isHost) {
             setIsMyTurn(true); isMyTurnRef.current = true;
