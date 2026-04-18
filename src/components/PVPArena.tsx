@@ -693,7 +693,7 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
           </div>
 
           {/* Área principal: sidebar esq + campo + sidebar dir */}
-          <div className="flex-1 flex gap-6 items-start justify-center pt-16">
+          <div className="flex-1 flex gap-6 items-center justify-center">
 
             {/* SIDEBAR ESQUERDA: fase, timer, botões */}
             <div className="w-36 flex flex-col items-center gap-4 self-center shrink-0">
@@ -745,7 +745,7 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
             </div>
 
             {/* CAMPO DE BATALHA */}
-            <div className="flex flex-col gap-2 flex-1 max-w-[820px]">
+            <div className="flex flex-col gap-6 max-w-[820px]">
 
               {/* Campo do oponente */}
               <div className="flex gap-2 justify-center items-center">
@@ -753,7 +753,7 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
                   <div key={`op-${i}`}
                     onClick={() => attackingCardId && card && handleAttack(card.id)}
                     className={`w-24 h-36 rounded-xl border-2 border-dashed flex items-center justify-center relative shrink-0 transition-all
-                      ${attackingCardId && card ? 'border-red-500 cursor-crosshair shadow-[0_0_12px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/15 bg-black/30'}`}
+                      ${attackingCardId && card ? 'border-red-500 cursor-crosshair shadow-[0_0_12px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/30 bg-black/20'}`}
                   >
                     <AnimatePresence mode="popLayout">
                       {card && (
@@ -782,7 +782,7 @@ export default function PVPArena({ roomId, isHost, userId, username, opponentNam
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    {!card && <span className="text-[7px] font-black text-white/10 uppercase">Combatente</span>}
+                    {!card && <span className="text-[7px] font-black text-red-500/40 uppercase">Combatente</span>}
                   </div>
                 ))}
               </div>
