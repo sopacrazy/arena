@@ -126,7 +126,23 @@ const positionLabel: Record<Position, string> = {
 
 // ─── COMPONENTE ARENA ─────────────────────────────────────────────────────────
 
+// ─── HOOK DE ESCALA RESPONSIVA ────────────────────────────────────────────────
+function useArenaScale(designW = 1280, designH = 768) {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const update = () => {
+      const s = Math.min(window.innerWidth / designW, window.innerHeight / designH);
+      setScale(Math.max(0.5, Math.min(s, 1.5)));
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [designW, designH]);
+  return scale;
+}
+
 export default function Arena({ onClose }: ArenaProps) {
+  const arenaScale = useArenaScale();
   const [isLoading, setIsLoading] = useState(true);
   const arenaImages = [
     '/arena.webp', '/enemy_avatar.webp', '/hero_avatar.webp', '/fundo.webp',
@@ -801,24 +817,34 @@ export default function Arena({ onClose }: ArenaProps) {
 
   // ─── RENDER ───────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans text-white"
-      style={{ cursor: attackingCardId ? 'crosshair' : 'default' }}
+    <div className="fixed inset-0 z-50 bg-black overflow-hidden flex items-center justify-center font-sans text-white">
+      {/* Botão fechar — fora da área escalada */}
+      <button onClick={onClose} className="absolute top-4 right-4 z-[300] p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-full transition-all group">
+        <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+      </button>
+
+    {/* Área escalada — 1280×768 design */}
+    <div
+      style={{
+        width: 1280,
+        height: 768,
+        transform: `scale(${arenaScale})`,
+        transformOrigin: 'center center',
+        position: 'relative',
+        cursor: attackingCardId ? 'crosshair' : 'default',
+        flexShrink: 0,
+      }}
     >
       {/* Fundo */}
       <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: 'url("/arena.webp")' }}>
         <div className="absolute inset-0 bg-black/75 backdrop-blur-[1px]" />
       </div>
 
-      {/* Botão fechar */}
-      <button onClick={onClose} className="absolute top-4 right-4 z-[60] p-2 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 rounded-full transition-all group">
-        <X className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-      </button>
-
       {/* Sobreposição de transição de turno */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.5 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+            className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
             <div className="bg-black/80 backdrop-blur-2xl px-12 py-6 rounded-full border-2 border-yellow-500/50">
               <h2 className="text-4xl font-black text-yellow-400 uppercase tracking-[0.4em] animate-pulse">{isTransitioning}</h2>
             </div>
@@ -828,7 +854,7 @@ export default function Arena({ onClose }: ArenaProps) {
         {/* Tela de fim de jogo */}
         {gameStatus !== 'playing' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            className="absolute inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md">
             <div className="text-center space-y-8 p-12 rounded-3xl border border-white/10 bg-white/5">
               <motion.h1 initial={{ y: 20 }} animate={{ y: 0 }}
                 className={`text-7xl font-black uppercase tracking-tighter ${gameStatus === 'victory' ? 'text-emerald-400' : 'text-red-500'}`}>
@@ -857,7 +883,7 @@ export default function Arena({ onClose }: ArenaProps) {
         {/* ── HUD Oponente (topo esquerdo) ── */}
         <div
           onClick={() => attackingCardId && handlePlayerAttack('direct')}
-          className={`fixed top-5 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border transition-all z-50 ${attackingCardId ? 'ring-2 ring-red-500 border-red-500 cursor-crosshair shadow-[0_0_20px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/20'}`}
+          className={`absolute top-5 left-10 flex items-center gap-3 bg-black/80 backdrop-blur-xl px-4 py-3 rounded-2xl border transition-all z-50 ${attackingCardId ? 'ring-2 ring-red-500 border-red-500 cursor-crosshair shadow-[0_0_20px_rgba(239,68,68,0.4)] scale-105' : 'border-red-500/20'}`}
         >
           <div className="w-10 h-10 rounded-xl border border-red-500/30 overflow-hidden">
             <img src="/enemy_avatar.webp" className="w-full h-full object-cover grayscale" alt="Malakor" />
@@ -874,7 +900,7 @@ export default function Arena({ onClose }: ArenaProps) {
         </div>
 
         {/* ── Mão do oponente (topo direito) ── */}
-        <div className="fixed top-5 right-10 flex flex-col items-end gap-1 z-50">
+        <div className="absolute top-5 right-10 flex flex-col items-end gap-1 z-50">
           <span className="text-[7px] font-black text-red-500/30 uppercase tracking-[0.3em]">Mão do Oponente</span>
           <div className="flex -space-x-8">
             {Array.from({ length: Math.min(opponentHandCount, 8) }).map((_, i) => (
@@ -1268,7 +1294,7 @@ export default function Arena({ onClose }: ArenaProps) {
       <AnimatePresence>
         {pendingCard && (pendingCard.cardType === 'Normal' || pendingCard.cardType === 'Especial') && pendingCard.level !== 'Neutro' && !sacrificeMode && !positionChoice && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-36 left-1/2 -translate-x-1/2 z-[90] flex gap-3 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3">
+            className="absolute bottom-36 left-1/2 -translate-x-1/2 z-[90] flex gap-3 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-3">
             <span className="text-[9px] font-black text-white/40 uppercase self-center">Invocar por:</span>
             <button onClick={() => { /* Escala: highlight está no campo */ }}
               className="px-4 py-2 text-[9px] font-black uppercase bg-blue-700/60 hover:bg-blue-600 border border-blue-400/30 rounded-lg text-white transition-all">
@@ -1291,7 +1317,7 @@ export default function Arena({ onClose }: ArenaProps) {
         {positionChoice && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setPositionChoice(null)}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer">
+            className="absolute inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer">
             <motion.div initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               className="bg-black/90 border border-yellow-400/20 rounded-3xl p-8 max-w-lg w-full mx-4 cursor-default shadow-[0_0_60px_rgba(255,215,0,0.1)]">
@@ -1339,7 +1365,7 @@ export default function Arena({ onClose }: ArenaProps) {
         {inspectedCard && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setInspectedCard(null)}
-            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/95 backdrop-blur-xl cursor-pointer p-4">
+            className="absolute inset-0 z-[110] flex items-center justify-center bg-black/95 backdrop-blur-xl cursor-pointer p-4">
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               className="flex gap-8 max-w-3xl w-full bg-black/40 rounded-2xl border border-white/5 p-4 cursor-default">
@@ -1387,7 +1413,7 @@ export default function Arena({ onClose }: ArenaProps) {
       <AnimatePresence>
         {isViewingExile && (
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}
-            className="fixed top-1/2 -translate-y-1/2 right-4 z-[110] w-64 max-h-[80vh] flex flex-col bg-black/70 backdrop-blur-3xl rounded-3xl border border-white/10 overflow-hidden">
+            className="absolute top-1/2 -translate-y-1/2 right-4 z-[110] w-64 max-h-[80vh] flex flex-col bg-black/70 backdrop-blur-3xl rounded-3xl border border-white/10 overflow-hidden">
             <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
               <div className="flex items-center gap-2">
                 {isViewingExile === 'player' ? <History className="w-4 h-4 text-white/60" /> : <Skull className="w-4 h-4 text-red-400" />}
@@ -1417,7 +1443,7 @@ export default function Arena({ onClose }: ArenaProps) {
       </AnimatePresence>
 
       {/* ── Preview de carta ao hover (lado esquerdo) ── */}
-      <div className="fixed top-1/2 left-6 -translate-y-1/2 z-40 w-64 pointer-events-none">
+      <div className="absolute top-1/2 left-6 -translate-y-1/2 z-40 w-64 pointer-events-none">
         <AnimatePresence>
           {hoveredCard && (
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
@@ -1443,6 +1469,7 @@ export default function Arena({ onClose }: ArenaProps) {
           )}
         </AnimatePresence>
       </div>
+    </div>
     </div>
   );
 }

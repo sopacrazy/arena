@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Home, 
-  Gamepad2, 
-  ShoppingBag, 
-  ShieldCheck, 
-  Users, 
-  Settings, 
-  LogOut, 
-  Search, 
-  Bell, 
-  Coins, 
-  Gem, 
-  MessageSquare, 
+  Home,
+  Gamepad2,
+  ShoppingBag,
+  ShieldCheck,
+  Users,
+  Settings,
+  LogOut,
+  Search,
+  Bell,
+  Coins,
+  Gem,
+  MessageSquare,
   ChevronRight,
   User,
   Star,
@@ -25,19 +25,56 @@ import {
   Trophy,
   Crown,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
 import InventoryView from './InventoryView';
+import ShopView from './ShopView';
+import { getProfile, getTotalCardCount } from '../lib/supabase';
+import type { Profile } from '../lib/supabase';
 
 interface PlayerPanelProps {
+  userId: string;
   onStartGame: () => void;
   onLogout: () => void;
 }
 
-export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps) {
+export default function PlayerPanel({ userId, onStartGame, onLogout }: PlayerPanelProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [cardCount, setCardCount] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    getProfile(userId).then(setProfile);
+    getTotalCardCount(userId).then(setCardCount);
+  }, [userId]);
+
+  // Trilha sonora do painel
+  useEffect(() => {
+    const audio = new Audio('/audio/painelsom.ogg');
+    audio.loop = true;
+    audio.volume = 0.12;
+    audioRef.current = audio;
+    audio.play().catch(() => {});
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+
+  const [muted, setMuted] = useState(false);
+
+  const toggleMute = () => {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !audioRef.current.muted;
+    setMuted(m => !m);
+  };
+
+  const refreshCardCount = () => getTotalCardCount(userId).then(setCardCount);
 
   const dashboardImages = [
     '/logo.webp',
@@ -59,7 +96,7 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
     { id: 'rankings',  label: 'Rankings',     icon: Trophy,     disabled: false },
     { id: 'games',     label: 'Modos de Jogo',icon: Gamepad2,   disabled: false },
     { id: 'inventory', label: 'Inventário',   icon: ShoppingBag,disabled: false },
-    { id: 'marketplace',label: 'Mercado',     icon: ShieldCheck,disabled: true  },
+    { id: 'marketplace',label: 'Mercado',     icon: ShoppingBag,disabled: false },
     { id: 'community', label: 'Comunidade',   icon: Users,      disabled: true  },
   ];
 
@@ -140,19 +177,19 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
             <div className="flex items-center gap-4 border-r border-white/10 pr-6">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 group hover:border-gold/30 transition-all cursor-pointer">
                 <Coins className="w-4 h-4 text-gold" />
-                <span className="text-[11px] font-black font-mono">2,500.23</span>
+                <span className="text-[11px] font-black font-mono">{profile?.gold?.toLocaleString('pt-BR') ?? '–'}</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/10 group hover:border-cyan-400/30 transition-all cursor-pointer">
                 <Gem className="w-4 h-4 text-cyan-400" />
-                <span className="text-[11px] font-black font-mono">150.00</span>
+                <span className="text-[11px] font-black font-mono">{profile?.gems?.toLocaleString('pt-BR') ?? '–'}</span>
               </div>
             </div>
 
             {/* Profile */}
             <div className="flex items-center gap-3 pl-4">
               <div className="text-right">
-                <div className="text-[10px] font-black text-white uppercase tracking-wider">Adriano_X</div>
-                <div className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">Combatente Nv. 42</div>
+                <div className="text-[10px] font-black text-white uppercase tracking-wider">{profile?.username ?? '...'}</div>
+                <div className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">Combatente • {cardCount} cartas</div>
               </div>
               <div className="relative">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/50 to-gold/10 p-[1px]">
@@ -163,6 +200,9 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0a0a0c] shadow-[0_0_8px_#10b981]" />
               </div>
               <Bell className="w-5 h-5 text-gray-500 hover:text-white transition-colors cursor-pointer ml-2" />
+              <button onClick={toggleMute} title={muted ? 'Ativar som' : 'Silenciar'} className="ml-1 text-gray-500 hover:text-white transition-colors">
+                {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </header>
@@ -172,11 +212,11 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
           {activeTab === 'dashboard' ? (
             <div className="p-10 space-y-10">
               {/* Main Hero Banner */}
-              <div className="relative group rounded-[2.5rem] overflow-hidden border border-white/5 aspect-[21/9] shrink-0">
-                 <img src="/arena.webp" className="w-full h-full object-cover grayscale brightness-50 group-hover:scale-105 transition-all duration-1000" />
+              <div className="relative group rounded-[2.5rem] overflow-hidden border border-white/5 min-h-[280px] shrink-0">
+                 <img src="/arena.webp" className="absolute inset-0 w-full h-full object-cover grayscale brightness-50 group-hover:scale-105 transition-all duration-1000" />
                  <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
-                 
-                 <div className="absolute inset-0 flex flex-col justify-center px-16 max-w-2xl gap-4">
+
+                 <div className="relative flex flex-col justify-center px-16 py-10 max-w-2xl gap-4">
                     <div className="flex items-center gap-2">
                        <div className="px-2 py-0.5 bg-gold/20 border border-gold/40 rounded text-[9px] font-black text-gold uppercase tracking-[0.2em]">Sazonal</div>
                        <div className="w-12 h-px bg-gold/40" />
@@ -186,17 +226,29 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
                     <p className="text-gray-400 text-sm max-w-sm font-medium leading-relaxed italic border-l-2 border-gold/20 pl-4 py-1">
                       Enfrente oponentes lendários, colete cartas raras e domine o tabuleiro nesta nova temporada competitiva.
                     </p>
-                    <div className="flex gap-4 mt-4">
-                       <button 
-                         onClick={onStartGame}
-                         className="px-10 py-4 bg-gold text-black font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_-15px_rgba(255,183,0,0.4)] flex items-center gap-3"
-                       >
-                         <Play className="w-4 h-4 fill-black" />
-                         Entrar Agora
-                       </button>
-                       <button className="px-10 py-4 bg-white/5 backdrop-blur-md border border-white/10 text-white font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-white/10 transition-all">
-                         Detalhes
-                       </button>
+                    <div className="flex flex-col gap-3 mt-4">
+                       {cardCount < 5 ? (
+                         <div className="flex flex-col gap-2">
+                           <button
+                             disabled
+                             className="px-10 py-4 bg-white/5 border border-white/10 text-white/30 font-black uppercase tracking-[0.2em] rounded-2xl cursor-not-allowed flex items-center gap-3"
+                           >
+                             <Play className="w-4 h-4" />
+                             Entrar Agora
+                           </button>
+                           <p className="text-[10px] text-amber-400/80 uppercase tracking-widest font-bold">
+                             Você precisa de ao menos 5 cartas. Vá ao <button className="underline cursor-pointer" onClick={() => setActiveTab('marketplace')}>Mercado</button> e abra seu baú gratuito!
+                           </p>
+                         </div>
+                       ) : (
+                         <button
+                           onClick={onStartGame}
+                           className="px-10 py-4 bg-gold text-black font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_-15px_rgba(255,183,0,0.4)] flex items-center gap-3 w-fit"
+                         >
+                           <Play className="w-4 h-4 fill-black" />
+                           Entrar Agora
+                         </button>
+                       )}
                     </div>
                  </div>
 
@@ -314,7 +366,9 @@ export default function PlayerPanel({ onStartGame, onLogout }: PlayerPanelProps)
           ) : activeTab === 'rankings' ? (
             <RankingsView />
           ) : activeTab === 'inventory' ? (
-            <InventoryView />
+            <InventoryView userId={userId} />
+          ) : activeTab === 'marketplace' ? (
+            <ShopView userId={userId} onCardsChanged={refreshCardCount} />
           ) : (
             <div className="flex-1 flex items-center justify-center">
                <div className="text-center space-y-4">

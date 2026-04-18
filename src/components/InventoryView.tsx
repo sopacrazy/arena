@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search, SlidersHorizontal, Sword, Shield, Sparkles,
   Flame, Droplets, Wind, Zap, Sun, Moon, Filter, X,
-  BookOpen, Star, ChevronRight
+  BookOpen, Star, ChevronRight, PackageOpen
 } from 'lucide-react';
+import { getUserCards } from '../lib/supabase';
+import { CATALOG } from '../lib/catalog';
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 type Rarity = 'Neutro' | 'Bronze' | 'Prata' | 'Ouro';
@@ -122,7 +124,7 @@ const RARITIES: Rarity[]   = ['Neutro', 'Bronze', 'Prata', 'Ouro'];
 const ELEMENTS: Element[]  = ['Fogo', 'Agua', 'Vento', 'Trevas', 'Luz', 'Terra'];
 
 // ── Componente Card ────────────────────────────────────────────────────────
-function CardTile({ card, onClick }: { card: InventoryCard; onClick: () => void }) {
+function CardTile({ card, onClick }: { card: InventoryCard; onClick: () => void; key?: React.Key }) {
   const r = RARITY_CONFIG[card.rarity];
   const e = ELEMENT_CONFIG[card.element];
 
@@ -284,14 +286,39 @@ function CardModal({ card, onClose }: { card: InventoryCard; onClose: () => void
 }
 
 // ── Componente principal: Inventário ─────────────────────────────────────
-export default function InventoryView() {
+export default function InventoryView({ userId }: { userId: string }) {
+  const [allCards, setAllCards]   = useState<InventoryCard[]>([]);
+  const [loadingCards, setLoadingCards] = useState(true);
   const [search, setSearch]       = useState('');
   const [rarityFilter, setRarityFilter] = useState<Rarity | 'Todos'>('Todos');
   const [elementFilter, setElementFilter] = useState<Element | 'Todos'>('Todos');
   const [selected, setSelected]   = useState<InventoryCard | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const cards = SAMPLE_CARDS.filter((c) => {
+  useEffect(() => {
+    getUserCards(userId).then((rows) => {
+      const mapped: InventoryCard[] = rows.map((row) => {
+        const cat = CATALOG[row.card_catalog_index];
+        return {
+          id: row.id,
+          name: cat.name,
+          rarity: cat.level as Rarity,
+          element: cat.element as Element,
+          raca: cat.raca,
+          classe: cat.classe,
+          atq: cat.atq,
+          def: cat.def,
+          desc: cat.desc,
+          image: cat.image,
+          copies: row.quantity,
+        };
+      });
+      setAllCards(mapped);
+      setLoadingCards(false);
+    });
+  }, [userId]);
+
+  const cards = allCards.filter((c) => {
     const matchSearch  = c.name.toLowerCase().includes(search.toLowerCase());
     const matchRarity  = rarityFilter  === 'Todos' || c.rarity  === rarityFilter;
     const matchElement = elementFilter === 'Todos' || c.element === elementFilter;
@@ -299,10 +326,18 @@ export default function InventoryView() {
   });
 
   // Stats
-  const totalCards  = SAMPLE_CARDS.reduce((s, c) => s + c.copies, 0);
-  const uniqueCards = SAMPLE_CARDS.length;
-  const foilCount   = SAMPLE_CARDS.filter(c => c.foil).length;
-  const ouroCount   = SAMPLE_CARDS.filter(c => c.rarity === 'Ouro').length;
+  const totalCards  = allCards.reduce((s, c) => s + c.copies, 0);
+  const uniqueCards = allCards.length;
+  const foilCount   = 0;
+  const ouroCount   = allCards.filter(c => c.rarity === 'Ouro').length;
+
+  if (loadingCards) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-40">
+        <div className="w-8 h-8 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500">
@@ -421,18 +456,24 @@ export default function InventoryView() {
         </div>
 
         <AnimatePresence mode="popLayout">
-          {cards.length > 0 ? (
+          {allCards.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-32 space-y-4">
+              <PackageOpen className="w-16 h-16 text-white/10" />
+              <p className="text-white/20 uppercase font-black tracking-[0.4em] text-xs text-center">
+                Seu inventário está vazio.<br />
+                <span className="text-amber-400/60">Vá ao Mercado e abra seu baú gratuito!</span>
+              </p>
+            </motion.div>
+          ) : cards.length > 0 ? (
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 pb-10">
               {cards.map((card) => (
                 <CardTile key={card.id} card={card} onClick={() => setSelected(card)} />
               ))}
             </motion.div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-32 space-y-4"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-32 space-y-4">
               <Filter className="w-12 h-12 text-white/10" />
               <p className="text-white/20 uppercase font-black tracking-[0.4em] text-xs">Nenhuma carta encontrada</p>
             </motion.div>
