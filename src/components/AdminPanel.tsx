@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Plus, Trash2, Edit2, Shield, Sword, Type, FileText, X, Save, 
-  Image as ImageIcon, Lock, User, Sparkles, ChevronRight, 
+import {
+  Plus, Trash2, Edit2, Shield, Sword, Type, FileText, X, Save,
+  Image as ImageIcon, Lock, User, Sparkles, ChevronRight,
   Search, Wand2, Gavel, Heart, Loader2, Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 interface Card {
   id: string;
@@ -23,10 +24,11 @@ interface Card {
 
 interface AdminPanelProps {
   onClose: () => void;
+  session?: Session | null;
 }
 
-export default function AdminPanel({ onClose }: AdminPanelProps) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export default function AdminPanel({ onClose, session }: AdminPanelProps) {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!session);
   const [loginData, setLoginData] = useState({ user: '', pass: '' });
   const [loginError, setLoginError] = useState(false);
 
