@@ -245,7 +245,7 @@ export default function PlayerPanel({ userId, onStartGame, onStartPVP, onLogout 
                              Entrar Agora
                            </button>
                            <p className="text-[10px] text-amber-400/80 uppercase tracking-widest font-bold">
-                             Você precisa de ao menos 5 cartas. Vá ao <button className="underline cursor-pointer" onClick={() => setActiveTab('marketplace')}>Mercado</button> e abra seu baú gratuito!
+                             As cartas da arena são carregadas do catálogo global. Peça ao administrador para cadastrar cartas no Painel Forjar.
                            </p>
                          </div>
                        ) : (

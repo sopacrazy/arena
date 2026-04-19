@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Shield, Sword, Eye, X, History, Skull, RefreshCw, Ghost, ChevronRight } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
+import { supabase } from '../lib/supabase';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -45,60 +46,8 @@ interface ArenaProps {
   userId?: string;
 }
 
-// ─── CATÁLOGO DE CARTAS ───────────────────────────────────────────────────────
-
-interface CatalogEntry {
-  name: string; level: CardLevel; cardType: CardType;
-  element: Card['element']; raca: string; classe: string;
-  atq: number; def: number; desc: string; img: string;
-  hasPierce?: boolean; revealEffect?: string;
-}
-
-const CATALOG: CatalogEntry[] = [
-  // ── Neutros (Combatentes Normais / Especiais de baixo custo) ──────────────
-  { name: 'Recruta 06',      level: 'Neutro', cardType: 'Normal',   element: 'Terra', raca: 'Humano', classe: 'Guerreiro', atq: 8,  def: 10, desc: 'Soldado recém-recrutado nas fileiras da guarda.',           img: '/RECK 1/NIVEL NEUTRO/06 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Patrulheiro 11',  level: 'Neutro', cardType: 'Normal',   element: 'Vento', raca: 'Humano', classe: 'Arqueiro',  atq: 10, def: 7,  desc: 'Guarda os portões com olhos de falcão.',                  img: '/RECK 1/NIVEL NEUTRO/11 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Sentinela 43',    level: 'Neutro', cardType: 'Normal',   element: 'Terra', raca: 'Humano', classe: 'Guardião', atq: 7,  def: 12, desc: 'Defesa inabalável nas muralhas do reino.',                  img: '/RECK 1/NIVEL NEUTRO/43 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Aldeão 49',       level: 'Neutro', cardType: 'Normal',   element: 'Terra', raca: 'Humano', classe: 'Civil',    atq: 5,  def: 8,  desc: 'Cidadão comum empunhando uma foice.',                      img: '/RECK 1/NIVEL NEUTRO/49 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Militante 50',    level: 'Neutro', cardType: 'Normal',   element: 'Fogo',  raca: 'Humano', classe: 'Lutador',  atq: 12, def: 6,  desc: 'Combatente agressivo sem treinamento formal.',              img: '/RECK 1/NIVEL NEUTRO/50 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Guarda 51',       level: 'Neutro', cardType: 'Normal',   element: 'Luz',   raca: 'Humano', classe: 'Guardião', atq: 9,  def: 11, desc: 'Protetor devotado da coroa.',                               img: '/RECK 1/NIVEL NEUTRO/51 - Copia - Copia - Copia - Copia - Copia - Copia.webp' },
-  { name: 'Vigilante 53',    level: 'Neutro', cardType: 'Normal',   element: 'Vento', raca: 'Humano', classe: 'Batedor', atq: 11, def: 8,  desc: 'Olhos nas sombras, espada afiada.',                         img: '/RECK 1/NIVEL NEUTRO/53 - Copia - Copia - Copia.webp' },
-  { name: 'Soldado 60',      level: 'Neutro', cardType: 'Normal',   element: 'Fogo',  raca: 'Humano', classe: 'Guerreiro',atq: 13, def: 9,  desc: 'Veterano endurecido das guerras do norte.',                 img: '/RECK 1/NIVEL NEUTRO/60.webp' },
-  { name: 'Mercenário 67',   level: 'Neutro', cardType: 'Normal',   element: 'Trevas',raca: 'Humano', classe: 'Mercenário',atq: 14,def: 7,  desc: 'Luta pelo maior pagador.',                                  img: '/RECK 1/NIVEL NEUTRO/67 - Copia - Copia.webp' },
-  // Combatente Especial Neutro — efeito "Revelar: comprar 1 carta"
-  { name: 'Andarilho',       level: 'Neutro', cardType: 'Especial', element: 'Vento', raca: 'Humano', classe: 'Viajante', atq: 9,  def: 9,  desc: 'Revelar: compre 1 carta do seu deck.',                     img: '/RECK 1/NIVEL NEUTRO/Design sem nome (10).webp', revealEffect: 'draw' },
-
-  // ── Bronze (substituem Neutros — Escala ou 1 Sacrifício) ─────────────────
-  // Especial — efeito "Revelar: Neutros aliados ganham +3 ATQ"
-  { name: 'Caelan, Lâmina do Juramento',  level: 'Bronze', cardType: 'Especial', element: 'Luz',   raca: 'Humano', classe: 'Paladino', atq: 18, def: 14, desc: 'Revelar: todos os Neutros aliados ganham +3 ATQ até o fim do turno.', img: '/RECK 1/PRATA/Caelan, Lâmina do Juramento.webp', revealEffect: 'buff-neutro-atq' },
-  { name: 'Fargan, Lâmina do Caminho',    level: 'Bronze', cardType: 'Normal',   element: 'Trevas',raca: 'Humano', classe: 'Caçador',  atq: 20, def: 12, desc: 'Perseguidor implacável das sombras.',                              img: '/RECK 1/PRATA/Fargan, Lâmina do Caminho Estreito (1).webp' },
-
-  // ── Prata (substituem Bronze — Escala ou 2 Sacrifícios) ──────────────────
-  // Especial — efeito "Revelar: 5 de dano direto ao oponente"
-  { name: 'Raskel, Sangue da Campanha',   level: 'Prata',  cardType: 'Especial', element: 'Fogo',  raca: 'Humano', classe: 'Comandante',atq: 26, def: 20, desc: 'Revelar: cause 5 de dano direto nos Pontos de Batalha do oponente.', img: '/RECK 1/PRATA/_Raskel, Sangue da Campanha.webp', revealEffect: 'direct-damage-5' },
-
-  // ── Ouro (substituem Prata — Escala ou 3 Sacrifícios) ────────────────────
-  // Normal com Perfuração de Bloqueio
-  { name: 'Aldren, Veterano da Fronteira',level: 'Ouro',   cardType: 'Normal',   element: 'Terra', raca: 'Humano', classe: 'General',  atq: 38, def: 30, desc: 'Perfuração de Bloqueio: ao destruir um bloqueador a diferença causa dano de PB.', img: '/RECK 1/OURO/Aldren, Veterano da Fronteira Quebrada (5).webp', hasPierce: true },
-  // Especial — efeito "Revelar: destruir 1 combatente do oponente com ATQ ≤ 20"
-  { name: 'Iskand, Sobrevivente',          level: 'Ouro',   cardType: 'Especial', element: 'Trevas',raca: 'Humano', classe: 'Campeão',  atq: 40, def: 28, desc: 'Revelar: destrua 1 combatente inimigo com ATQ ≤ 20.', img: '/RECK 1/OURO/Iskand, Sobrevivente do Campo Vermelho.webp', revealEffect: 'destroy-weak' },
-];
-
 // ─── CONSTRUÇÃO DO POOL DE DECK ───────────────────────────────────────────────
-// Regra: Combatentes — até 3 cópias; Reações/Bênçãos — apenas 1 cópia (sem Reações/Bênçãos no catálogo por ora)
 const LEVEL_COPIES: Record<CardLevel, number> = { Neutro: 3, Bronze: 3, Prata: 2, Ouro: 1 };
-
-const DECK_POOL: Card[] = CATALOG.flatMap((entry, ci) =>
-  Array.from({ length: LEVEL_COPIES[entry.level] }, (_, copy) => ({
-    id: `base-${ci}-${copy}`,
-    name: entry.name, level: entry.level, cardType: entry.cardType,
-    element: entry.element, raca: entry.raca, classe: entry.classe,
-    atq: entry.atq, def: entry.def, desc: entry.desc, image: entry.img,
-    hasPierce: entry.hasPierce, revealEffect: entry.revealEffect,
-    position: 'attack' as Position,
-    positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: false,
-  }))
-);
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -146,34 +95,18 @@ function useArenaScale(designW = 1280, designH = 768) {
 export default function Arena({ onClose, userId }: ArenaProps) {
   const arenaScale = useArenaScale();
   const [isLoading, setIsLoading] = useState(true);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [arenaImages, setArenaImages] = useState(['/arena.webp', '/enemy_avatar.webp', '/hero_avatar.webp', '/fundo.webp']);
   const [playerName, setPlayerName] = useState('Jogador');
-  useEffect(() => {
-    if (!userId) return;
-    import('../lib/supabase').then(({ getProfile }) =>
-      getProfile(userId).then(p => { if (p) setPlayerName(p.username); })
-    );
-  }, [userId]);
-  const arenaImages = [
-    '/arena.webp', '/enemy_avatar.webp', '/hero_avatar.webp', '/fundo.webp',
-    ...CATALOG.map(c => c.img),
-  ];
-
-  // ── Inicialização do estado do jogo ─────────────────────────────────────
-  const dealInitial = () => {
-    const s = shuffle(DECK_POOL);
-    const uniquify = (cards: Card[], prefix: string) =>
-      cards.map((c, i) => ({ ...c, id: `${prefix}-${i}-${c.id}` }));
-    return { deck: uniquify(s.slice(5), 'pd'), hand: uniquify(s.slice(0, 5), 'ph') };
-  };
 
   // Pontos de Batalha (regra: 30 para partidas casuais)
   const [playerPB, setPlayerPB]     = useState(30);
   const [opponentPB, setOpponentPB] = useState(30);
 
-  // Deck e mão do jogador
-  const [{ deck: initDeck, hand: initHand }] = useState(dealInitial);
-  const [playerDeck, setPlayerDeck] = useState<Card[]>(initDeck);
-  const [playerHand, setPlayerHand] = useState<Card[]>(initHand);
+  // Deck e mão do jogador (inicializados após busca do Supabase)
+  const [playerDeck, setPlayerDeck] = useState<Card[]>([]);
+  const [playerHand, setPlayerHand] = useState<Card[]>([]);
 
   // Mão do oponente (apenas contagem — IA sem deck real)
   const [opponentHandCount, setOpponentHandCount] = useState(5);
@@ -228,6 +161,9 @@ export default function Arena({ onClose, userId }: ArenaProps) {
     card: Card; slotIndex: number; replaced: Card | null; sacrificed: string[];
   } | null>(null);
 
+  // ── Pool de cartas (persistido em ref para uso na IA e no resetGame) ────
+  const poolRef = useRef<Card[]>([]);
+
   // ── Refs para loop assíncrono da IA ─────────────────────────────────────
   const playerFieldRef   = useRef(playerField);
   const opponentFieldRef = useRef(opponentField);
@@ -241,6 +177,60 @@ export default function Arena({ onClose, userId }: ArenaProps) {
   useEffect(() => { opponentPBRef.current    = opponentPB;    }, [opponentPB]);
   useEffect(() => { playerDeckRef.current    = playerDeck;    }, [playerDeck]);
   useEffect(() => { turnRef.current          = turn;          }, [turn]);
+
+  // ── Busca cartas do Supabase e monta o pool de deck ─────────────────────
+  useEffect(() => {
+    supabase.from('cards').select('*').then(({ data, error }) => {
+      if (error || !data || data.length === 0) {
+        setLoadError('Nenhuma carta encontrada. Cadastre cartas no painel Forjar primeiro.');
+        return;
+      }
+      const pool: Card[] = data.flatMap((c, ci) => {
+        const level = c.level as CardLevel;
+        const copies = LEVEL_COPIES[level] ?? 1;
+        return Array.from({ length: copies }, (_, copy) => ({
+          id: `db-${ci}-${copy}`,
+          name: c.name,
+          level,
+          cardType: 'Normal' as CardType,
+          element: c.element as Card['element'],
+          raca: c.raca ?? '',
+          classe: c.classe ?? '',
+          atq: c.atq ?? 0,
+          def: c.def ?? 0,
+          desc: c.description ?? '',
+          image: c.image_url || '/fundo.webp',
+          position: 'attack' as Position,
+          positionChangedThisTurn: false,
+          attackedThisTurn: false,
+          summonedThisTurn: false,
+        }));
+      });
+
+      const shuffled = shuffle(pool);
+      const uniquify = (cards: Card[], prefix: string) =>
+        cards.map((c, i) => ({ ...c, id: `${prefix}-${i}-${c.id}` }));
+
+      const handSize = Math.min(5, shuffled.length);
+      setPlayerHand(uniquify(shuffled.slice(0, handSize), 'ph'));
+      setPlayerDeck(uniquify(shuffled.slice(handSize), 'pd'));
+
+      poolRef.current = pool;
+
+      setArenaImages([
+        '/arena.webp', '/enemy_avatar.webp', '/hero_avatar.webp', '/fundo.webp',
+        ...data.map((c: any) => c.image_url).filter(Boolean),
+      ]);
+      setCatalogReady(true);
+    });
+
+    if (userId) {
+      import('../lib/supabase').then(({ getProfile }) =>
+        getProfile(userId).then(p => { if (p) setPlayerName(p.username); })
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Timer de turno (60s) ─────────────────────────────────────────────────
   useEffect(() => {
@@ -286,7 +276,12 @@ export default function Arena({ onClose, userId }: ArenaProps) {
 
   // ─── REINICIAR ────────────────────────────────────────────────────────────
   const resetGame = () => {
-    const { deck, hand } = dealInitial();
+    const shuffled = shuffle(poolRef.current);
+    const uniquify = (cards: Card[], prefix: string) =>
+      cards.map((c, i) => ({ ...c, id: `${prefix}-${i}-${c.id}` }));
+    const handSize = Math.min(5, shuffled.length);
+    const hand = uniquify(shuffled.slice(0, handSize), 'ph');
+    const deck = uniquify(shuffled.slice(handSize), 'pd');
     playerDeckRef.current = deck;
     turnRef.current = 'player';
     setPlayerDeck(deck); setPlayerHand(hand);
@@ -358,14 +353,15 @@ export default function Arena({ onClose, userId }: ArenaProps) {
     if (opponentHandCount > 0 && emptySlots.length > 0) {
       // IA tenta Substituição por Escala se tem Neutro no campo (50% de chance)
       let played = false;
+      const pool = poolRef.current;
       if (neutrosOnField.length > 0 && Math.random() < 0.5) {
-        const bronzeEntry = CATALOG.filter(e => e.level === 'Bronze');
-        if (bronzeEntry.length > 0) {
-          const entry = bronzeEntry[Math.floor(Math.random() * bronzeEntry.length)];
+        const bronzePool = pool.filter(e => e.level === 'Bronze');
+        if (bronzePool.length > 0) {
+          const entry = bronzePool[Math.floor(Math.random() * bronzePool.length)];
           const target = neutrosOnField[0];
           const replaceIdx = curField.findIndex(c => c?.id === target.id);
           if (replaceIdx !== -1) {
-            const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
+            const newCard: Card = { ...entry, id: `opp-${Date.now()}`, position: 'attack', positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
             setOpponentExile(prev => [...prev, target]);
             setOpponentField(prev => { const n = [...prev]; n[replaceIdx] = newCard; return n; });
             setOpponentHandCount(prev => Math.max(0, prev - 1));
@@ -378,10 +374,11 @@ export default function Arena({ onClose, userId }: ArenaProps) {
 
       if (!played) {
         // Invocação Normal de Neutro
-        const neutroEntries = CATALOG.filter(e => e.level === 'Neutro');
-        const entry = neutroEntries[Math.floor(Math.random() * neutroEntries.length)];
+        const neutroPool = pool.filter(e => e.level === 'Neutro');
+        const basePool = neutroPool.length > 0 ? neutroPool : pool;
+        const entry = basePool[Math.floor(Math.random() * basePool.length)];
         const pos: Position = Math.random() < 0.3 ? 'defense-closed' : 'attack';
-        const newCard: Card = { ...entry, id: `opp-${Date.now()}`, image: entry.img, position: pos, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
+        const newCard: Card = { ...entry, id: `opp-${Date.now()}`, position: pos, positionChangedThisTurn: false, attackedThisTurn: false, summonedThisTurn: true };
         setOpponentField(prev => { const n = [...prev]; n[emptySlots[0]] = newCard; return n; });
         setOpponentHandCount(prev => Math.max(0, prev - 1));
         addHistory(`● Malakor invocou: ${newCard.name} (${positionLabel[pos]})`);
@@ -804,7 +801,31 @@ export default function Arena({ onClose, userId }: ArenaProps) {
     addHistory(`● Modo Sacrifício ativado: selecione ${needed} Neutro(s) no campo`);
   };
 
-  // ─── LOADING ──────────────────────────────────────────────────────────────
+  // ─── LOADING / ERRO ───────────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-6 text-center p-8">
+        <div className="text-5xl">⚠️</div>
+        <h2 className="text-2xl font-black uppercase text-red-400 tracking-widest">Sem Cartas Cadastradas</h2>
+        <p className="text-white/50 text-sm max-w-sm">{loadError}</p>
+        <button onClick={onClose} className="px-8 py-3 bg-[#c9a84c]/20 border border-[#c9a84c]/40 text-[#c9a84c] rounded-xl font-black uppercase tracking-widest text-sm hover:bg-[#c9a84c]/30 transition-all">
+          Voltar ao Painel
+        </button>
+      </div>
+    );
+  }
+
+  if (!catalogReady) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-[#c9a84c] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[#c9a84c]/60 text-xs font-black uppercase tracking-[0.3em]">Convocando Cartas...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return <LoadingScreen images={arenaImages} onComplete={() => setIsLoading(false)} message="INVOCANDO ARENA..." />;
   }

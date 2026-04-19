@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+type Raridade = 'Comum' | 'Incomum' | 'Raro' | 'Épico' | 'Lendário';
+
 interface Card {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ interface Card {
   element: 'Agua' | 'Terra' | 'Luz' | 'Trevas' | 'Vento' | 'Fogo';
   raca: 'Humano' | 'Zumbi' | 'Fada';
   classe: 'Guerreiro' | 'Mago' | 'Necromance';
+  raridade: Raridade;
   atq: number;
   def: number;
   desc: string;
@@ -62,6 +65,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         element: c.element,
         raca: c.raca,
         classe: c.classe,
+        raridade: (c.raridade as Raridade) || 'Comum',
         atq: c.atq,
         def: c.def,
         desc: c.description || '',
@@ -87,6 +91,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     element: 'Agua' as Card['element'],
     raca: 'Humano',
     classe: 'Guerreiro' as Card['classe'],
+    raridade: 'Comum' as Raridade,
     image: '/fundo.webp'
   });
 
@@ -183,6 +188,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         element: formData.element,
         raca: formData.raca,
         classe: formData.classe,
+        raridade: formData.raridade,
         atq: formData.atq,
         def: formData.def,
         description: formData.desc,
@@ -220,6 +226,26 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     }
   };
 
+  const getRaridadeGlow = (raridade: Raridade) => {
+    switch (raridade) {
+      case 'Comum':    return 'shadow-[0_0_18px_rgba(255,255,255,0.25)] border-white/20';
+      case 'Incomum':  return 'shadow-[0_0_18px_rgba(180,180,210,0.35)] border-zinc-400/30';
+      case 'Raro':     return 'shadow-[0_0_24px_rgba(59,130,246,0.55)] border-blue-500/40';
+      case 'Épico':    return 'shadow-[0_0_28px_rgba(147,51,234,0.55)] border-purple-500/40 epic-glow';
+      case 'Lendário': return 'shadow-[0_0_32px_rgba(212,175,55,0.65)] border-yellow-500/50 legendary-glow';
+    }
+  };
+
+  const getRaridadeBadge = (raridade: Raridade) => {
+    switch (raridade) {
+      case 'Comum':    return 'text-white/50 bg-white/5 border-white/10';
+      case 'Incomum':  return 'text-zinc-300 bg-zinc-400/10 border-zinc-400/20';
+      case 'Raro':     return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+      case 'Épico':    return 'text-purple-400 bg-purple-500/10 border-purple-500/20';
+      case 'Lendário': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+    }
+  };
+
   const getColor = (level: string) => {
     if (level === 'Ouro') return 'yellow';
     if (level === 'Prata') return 'silver';
@@ -228,16 +254,17 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   };
 
   const resetForm = () => {
-    setFormData({ 
-      name: '', 
-      atq: 1, 
-      def: 1, 
-      desc: '', 
-      level: 'Neutro', 
+    setFormData({
+      name: '',
+      atq: 1,
+      def: 1,
+      desc: '',
+      level: 'Neutro',
       element: 'Agua',
       raca: 'Humano',
       classe: 'Guerreiro',
-      image: '/fundo.webp' 
+      raridade: 'Comum',
+      image: '/fundo.webp'
     });
     setEditingCard(null);
   };
@@ -253,6 +280,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       element: card.element,
       raca: card.raca,
       classe: card.classe,
+      raridade: card.raridade,
       image: card.image
     });
     setActiveTab('forge');
@@ -432,12 +460,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
                     {cards.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).map(card => (
-                    <motion.div 
+                    <motion.div
                       key={card.id}
                       layout
                       whileHover={{ y: -5 }}
                       onClick={() => startEdit(card)}
-                      className="relative bg-white/[0.03] border border-white/5 rounded-[2.5rem] p-6 cursor-pointer group hover:border-gold/30 hover:bg-white/[0.05] transition-all"
+                      className={`relative bg-white/[0.03] border rounded-[2.5rem] p-6 cursor-pointer group hover:bg-white/[0.05] transition-all ${getRaridadeGlow(card.raridade)}`}
                     >
                       <div className="relative aspect-[3/4] rounded-[2rem] overflow-hidden border border-white/10 mb-6 bg-black shadow-2xl">
                         <img src={card.image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -458,11 +486,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="text-lg font-black uppercase tracking-widest text-white mb-1">{card.name}</h4>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                <p className="text-[10px] font-black text-gold/60 uppercase">{card.level}</p>
                                <span className="text-white/20">•</span>
                                <p className="text-[10px] font-black text-white/40 uppercase">{card.element}</p>
                             </div>
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getRaridadeBadge(card.raridade)}`}>{card.raridade}</span>
                           </div>
                           <div className="flex gap-2">
                             <button 
@@ -512,196 +541,226 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       </div>
                    </div>
 
-                   <div className="space-y-12 bg-white/[0.02] border border-white/10 rounded-[3rem] p-12 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gold/5 blur-[100px] rounded-full pointer-events-none" />
+                   <div className="space-y-8 bg-white/[0.02] border border-white/10 rounded-[2.5rem] p-10 backdrop-blur-3xl shadow-2xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-gold/5 blur-[80px] rounded-full pointer-events-none" />
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        {/* Information Group */}
-                        <div className="space-y-8">
-                           <div className="space-y-3">
-                              <label className="text-[11px] font-black uppercase text-gold/60 tracking-[0.3em] pl-2 flex items-center gap-2">
-                                <Type className="w-3 h-3" /> Nome do Combatente
-                              </label>
-                              <input 
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-5 text-white focus:border-gold/40 text-lg font-bold transition-all outline-none placeholder:text-white/5"
-                                placeholder="Ex: Arcanista Primordial"
-                              />
-                           </div>
+                      {/* ── Linha 1: Nome ── */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.3em] flex items-center gap-2">
+                          <Type className="w-3 h-3 text-gold/50" /> Nome do Combatente
+                        </label>
+                        <input
+                          value={formData.name}
+                          onChange={e => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-gold/40 text-base font-bold transition-all outline-none placeholder:text-white/10"
+                          placeholder="Ex: Arcanista Primordial"
+                        />
+                      </div>
 
-                           <div className="grid grid-cols-2 gap-6">
-                              <div className="space-y-3">
-                                <label className="text-[11px] font-black uppercase text-white/30 tracking-[0.3em] pl-2">Raça</label>
-                                <select
-                                  value={formData.raca}
-                                  onChange={e => setFormData({ ...formData, raca: e.target.value })}
-                                  className="w-full bg-white/5 border border-white/10 rounded-[1.2rem] px-6 py-4 text-white focus:border-gold/40 transition-all outline-none"
-                                >
-                                  <option value="" disabled className="bg-[#0d0d10]">Selecionar</option>
-                                  <option value="Humano" className="bg-[#0d0d10]">Humano</option>
-                                  <option value="Zumbi" className="bg-[#0d0d10]">Zumbi</option>
-                                  <option value="Fada" className="bg-[#0d0d10]">Fada</option>
-                                </select>
-                              </div>
-                              <div className="space-y-3">
-                                <label className="text-[11px] font-black uppercase text-white/30 tracking-[0.3em] pl-2">Classe</label>
-                                <select 
-                                  value={formData.classe}
-                                  onChange={e => setFormData({ ...formData, classe: e.target.value as any })}
-                                  className="w-full bg-white/5 border border-white/10 rounded-[1.2rem] px-6 py-[1.15rem] text-white focus:border-gold/40 transition-all outline-none appearance-none cursor-pointer font-bold"
-                                >
-                                  {['Guerreiro', 'Mago', 'Necromance'].map(c => (
-                                    <option key={c} value={c} className="bg-[#111] text-white">{c}</option>
-                                  ))}
-                                </select>
-                              </div>
-                           </div>
-
-                           <div className="grid grid-cols-2 gap-6 pt-4">
-                              <div className="bg-red-500/5 p-6 rounded-[2rem] border border-red-500/10 space-y-4">
-                                <label className="text-[11px] font-black uppercase text-red-500/60 tracking-[0.3em] flex items-center gap-2">
-                                  <Sword className="w-3 h-3" /> Poder (ATK)
-                                </label>
-                                <input 
-                                  type="number"
-                                  value={formData.atq}
-                                  onChange={e => setFormData({ ...formData, atq: parseInt(e.target.value) || 0 })}
-                                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-3xl font-black text-white focus:border-red-500/50 transition-all outline-none text-center"
-                                />
-                              </div>
-                              <div className="bg-emerald-500/5 p-6 rounded-[2rem] border border-emerald-500/10 space-y-4">
-                                <label className="text-[11px] font-black uppercase text-emerald-500/60 tracking-[0.3em] flex items-center gap-2">
-                                   <Shield className="w-3 h-3" /> Defesa (DEF)
-                                </label>
-                                <input 
-                                  type="number"
-                                  value={formData.def}
-                                  onChange={e => setFormData({ ...formData, def: parseInt(e.target.value) || 0 })}
-                                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-5 text-3xl font-black text-white focus:border-emerald-500/50 transition-all outline-none text-center"
-                                />
-                              </div>
-                           </div>
+                      {/* ── Linha 2: Raça + Classe + ATQ + DEF ── */}
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em]">Raça</label>
+                          <select
+                            value={formData.raca}
+                            onChange={e => setFormData({ ...formData, raca: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-gold/40 transition-all outline-none cursor-pointer"
+                          >
+                            <option value="Humano" className="bg-[#0d0d10]">Humano</option>
+                            <option value="Zumbi"  className="bg-[#0d0d10]">Zumbi</option>
+                            <option value="Fada"   className="bg-[#0d0d10]">Fada</option>
+                          </select>
                         </div>
-
-                        {/* Visuals & Logic Group */}
-                        <div className="space-y-8">
-                           <div className="space-y-4">
-                              <label className="text-[11px] font-black uppercase text-gold/60 tracking-[0.3em] pl-2 flex items-center gap-2">
-                                <Sparkles className="w-3 h-3" /> Essência da Raridade (Nível)
-                              </label>
-                              <div className="grid grid-cols-2 gap-3">
-                                {['Neutro', 'Bronze', 'Prata', 'Ouro'].map(t => (
-                                  <button 
-                                    key={t}
-                                    onClick={() => setFormData({ ...formData, level: t as any })}
-                                    className={`py-5 rounded-2xl text-[10px] font-black uppercase transition-all border ${formData.level === t ? 'bg-gold/20 border-gold/50 text-gold shadow-2xl shadow-gold/20' : 'bg-white/5 border-white/10 text-white/20'}`}
-                                  >
-                                    {t}
-                                  </button>
-                                ))}
-                              </div>
-                           </div>
-
-                           <div className="space-y-4">
-                              <label className="text-[11px] font-black uppercase text-gold/60 tracking-[0.3em] pl-2 flex items-center gap-2">
-                                <Shield className="w-3 h-3" /> Elemento Harmonizado
-                              </label>
-                              <div className="grid grid-cols-3 gap-3">
-                                {[
-                                  { name: 'Agua', color: 'border-blue-500/50 text-blue-400 bg-blue-500/10' },
-                                  { name: 'Terra', color: 'border-amber-700/50 text-amber-600 bg-amber-700/10' },
-                                  { name: 'Luz', color: 'border-yellow-200/50 text-yellow-200 bg-yellow-200/10' },
-                                  { name: 'Trevas', color: 'border-purple-600/50 text-purple-400 bg-purple-600/10' },
-                                  { name: 'Vento', color: 'border-cyan-400/50 text-cyan-400 bg-cyan-400/10' },
-                                  { name: 'Fogo', color: 'border-red-500/50 text-red-500 bg-red-500/10' }
-                                ].map(e => (
-                                  <button 
-                                    key={e.name}
-                                    onClick={() => setFormData({ ...formData, element: e.name as any })}
-                                    className={`py-4 rounded-2xl text-[9px] font-black uppercase transition-all border ${formData.element === e.name ? `${e.color} shadow-2xl` : 'bg-white/5 border-white/10 text-white/20 hover:border-white/20'}`}
-                                  >
-                                    {e.name}
-                                  </button>
-                                ))}
-                              </div>
-                           </div>
-
-                           <div className="space-y-4">
-                              <label className="text-[11px] font-black uppercase text-gold/60 tracking-[0.3em] pl-2 flex items-center gap-2">
-                                <ImageIcon className="w-3 h-3" /> Manifestação Visual
-                              </label>
-                              <div className="flex flex-col gap-3">
-                                <button 
-                                  onClick={() => document.getElementById('imageUploadLarge')?.click()}
-                                  className="w-full bg-gold/5 border border-gold/20 hover:border-gold/50 rounded-[1.2rem] py-4 text-[10px] font-black uppercase text-gold flex items-center justify-center gap-3 transition-all group/upload"
-                                >
-                                  <ImageIcon className="w-5 h-5 group-hover/upload:rotate-12 transition-transform" /> Carregar Matéria Visual (WebP)
-                                </button>
-                                <input id="imageUploadLarge" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                <div className="relative group/url">
-                                   <input 
-                                     value={formData.image}
-                                     onChange={e => setFormData({ ...formData, image: e.target.value })}
-                                     className="w-full bg-white/5 border border-white/10 rounded-[1.2rem] px-6 py-4 text-white/40 focus:text-white focus:border-gold/40 transition-all outline-none text-[10px] font-mono"
-                                     placeholder="OU COLE A URL DA IMAGEM..."
-                                   />
-                                </div>
-                              </div>
-                           </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em]">Classe</label>
+                          <select
+                            value={formData.classe}
+                            onChange={e => setFormData({ ...formData, classe: e.target.value as any })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-gold/40 transition-all outline-none cursor-pointer"
+                          >
+                            {['Guerreiro', 'Mago', 'Necromance'].map(c => (
+                              <option key={c} value={c} className="bg-[#111]">{c}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-red-500/50 tracking-[0.25em] flex items-center gap-1"><Sword className="w-3 h-3" /> ATK</label>
+                          <input
+                            type="number"
+                            value={formData.atq}
+                            onChange={e => setFormData({ ...formData, atq: parseInt(e.target.value) || 0 })}
+                            className="w-full bg-red-500/5 border border-red-500/20 rounded-xl px-4 py-3 text-2xl font-black text-white focus:border-red-500/50 transition-all outline-none text-center"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-emerald-500/50 tracking-[0.25em] flex items-center gap-1"><Shield className="w-3 h-3" /> DEF</label>
+                          <input
+                            type="number"
+                            value={formData.def}
+                            onChange={e => setFormData({ ...formData, def: parseInt(e.target.value) || 0 })}
+                            className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-2xl font-black text-white focus:border-emerald-500/50 transition-all outline-none text-center"
+                          />
                         </div>
                       </div>
 
-                      <div className="pt-8 border-t border-white/10 space-y-6">
+                      {/* ── Linha 3: Nível + Elemento ── */}
+                      <div className="grid grid-cols-2 gap-6">
+                        {/* Nível */}
                         <div className="space-y-3">
-                           <label className="text-[11px] font-black uppercase text-gold/60 tracking-[0.3em] pl-2 flex items-center gap-2">
-                             <FileText className="w-3 h-3" /> Lore & Destino (Descrição)
-                           </label>
-                           <textarea 
-                             value={formData.desc}
-                             onChange={e => setFormData({ ...formData, desc: e.target.value })}
-                             rows={4}
-                             className="w-full bg-white/5 border border-white/10 rounded-[1.8rem] px-8 py-6 text-white focus:border-gold/40 transition-all outline-none resize-none leading-relaxed text-sm italic"
-                             placeholder="Descreva aqui o destino inabalável desta alma no campo de batalha..."
-                           />
+                          <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em] flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 text-gold/50" /> Nível
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {([
+                              { v: 'Neutro', dot: 'bg-zinc-500',   active: 'bg-zinc-700/40 border-zinc-500   text-zinc-200 shadow-zinc-500/20',  idle: 'border-zinc-700/40 text-zinc-600' },
+                              { v: 'Bronze', dot: 'bg-orange-500', active: 'bg-orange-600/20 border-orange-500 text-orange-300 shadow-orange-500/20', idle: 'border-orange-900/40 text-orange-800' },
+                              { v: 'Prata',  dot: 'bg-zinc-300',   active: 'bg-zinc-400/20 border-zinc-300   text-zinc-100 shadow-zinc-400/20',  idle: 'border-zinc-600/40 text-zinc-600' },
+                              { v: 'Ouro',   dot: 'bg-yellow-400', active: 'bg-yellow-500/20 border-yellow-400 text-yellow-300 shadow-yellow-400/20', idle: 'border-yellow-900/40 text-yellow-900' },
+                            ] as { v: Card['level']; dot: string; active: string; idle: string }[]).map(l => (
+                              <button
+                                key={l.v}
+                                onClick={() => setFormData({ ...formData, level: l.v })}
+                                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-2 shadow-lg
+                                  ${formData.level === l.v ? `${l.active} shadow-lg` : `bg-white/[0.03] ${l.idle} hover:bg-white/5`}`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${l.dot} ${formData.level === l.v ? 'opacity-100' : 'opacity-30'}`} />
+                                {l.v}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="flex gap-4">
-                           <button 
-                             onClick={() => setActiveTab('archive')}
-                             className="flex-1 py-6 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.3em] border border-white/5 hover:bg-white/5 transition-all text-white/30 hover:text-white"
-                           >
-                             Abandonar Ritual
-                           </button>
-                           <button 
-                             onClick={handleSave}
-                             disabled={saving}
-                             className="flex-[2] py-6 bg-gradient-to-br from-gold/90 to-gold hover:scale-[1.02] active:scale-[0.98] transition-all rounded-[1.5rem] text-black text-[12px] font-black uppercase tracking-[0.4em] shadow-2xl shadow-gold/20 flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                           >
-                             {saving ? (
-                               <>
-                                 <Loader2 className="w-6 h-6 animate-spin" /> Transmutando...
-                               </>
-                             ) : (
-                               <>
-                                 <Sparkles className="w-6 h-6 animate-pulse" /> {editingCard ? 'Consolidar Lenda' : 'Impregnar Unidade'}
-                               </>
-                             )}
-                           </button>
+                        {/* Elemento */}
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em] flex items-center gap-2">
+                            <Shield className="w-3 h-3 text-gold/50" /> Elemento
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {([
+                              { name: 'Agua',   dot: 'bg-blue-400',   active: 'border-blue-500/60 text-blue-300 bg-blue-500/10',     idle: 'border-blue-900/30   text-blue-900' },
+                              { name: 'Terra',  dot: 'bg-amber-600',  active: 'border-amber-600/60 text-amber-400 bg-amber-600/10',   idle: 'border-amber-900/30  text-amber-900' },
+                              { name: 'Luz',    dot: 'bg-yellow-200', active: 'border-yellow-200/60 text-yellow-100 bg-yellow-200/10', idle: 'border-yellow-900/20 text-yellow-900/40' },
+                              { name: 'Trevas', dot: 'bg-purple-500', active: 'border-purple-600/60 text-purple-300 bg-purple-600/10', idle: 'border-purple-900/30  text-purple-900' },
+                              { name: 'Vento',  dot: 'bg-cyan-400',   active: 'border-cyan-400/60 text-cyan-300 bg-cyan-400/10',      idle: 'border-cyan-900/30   text-cyan-900' },
+                              { name: 'Fogo',   dot: 'bg-red-500',    active: 'border-red-500/60 text-red-300 bg-red-500/10',          idle: 'border-red-900/30    text-red-900' },
+                            ] as { name: Card['element']; dot: string; active: string; idle: string }[]).map(e => (
+                              <button
+                                key={e.name}
+                                onClick={() => setFormData({ ...formData, element: e.name })}
+                                className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all border flex items-center justify-center gap-1.5
+                                  ${formData.element === e.name ? `${e.active} shadow-lg` : `bg-white/[0.03] ${e.idle} hover:bg-white/5`}`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${e.dot} ${formData.element === e.name ? 'opacity-100' : 'opacity-25'}`} />
+                                {e.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── Linha 4: Raridade (horizontal) ── */}
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em] flex items-center gap-2">
+                          <Sparkles className="w-3 h-3 text-gold/50" /> Raridade
+                        </label>
+                        <div className="grid grid-cols-5 gap-2">
+                          {([
+                            { value: 'Comum',    dot: 'bg-white/60',      active: 'border-white/40    text-white    bg-white/8    shadow-white/10',    idle: 'border-white/10    text-white/25' },
+                            { value: 'Incomum',  dot: 'bg-zinc-300',      active: 'border-zinc-400/60 text-zinc-200 bg-zinc-400/10 shadow-zinc-400/10', idle: 'border-zinc-600/20 text-zinc-600' },
+                            { value: 'Raro',     dot: 'bg-blue-400',      active: 'border-blue-500/60 text-blue-300 bg-blue-500/10 shadow-blue-500/20', idle: 'border-blue-900/20 text-blue-900/60' },
+                            { value: 'Épico',    dot: 'bg-purple-400',    active: 'border-purple-500/60 text-purple-300 bg-purple-500/10 shadow-purple-500/20', idle: 'border-purple-900/20 text-purple-900/60' },
+                            { value: 'Lendário', dot: 'bg-yellow-400',    active: 'border-yellow-500/60 text-yellow-300 bg-yellow-500/10 shadow-yellow-500/20', idle: 'border-yellow-900/20 text-yellow-900/60' },
+                          ] as { value: Raridade; dot: string; active: string; idle: string }[]).map(r => (
+                            <button
+                              key={r.value}
+                              onClick={() => setFormData({ ...formData, raridade: r.value })}
+                              className={`py-3 rounded-xl text-[9px] font-black uppercase tracking-wide transition-all border flex flex-col items-center gap-1.5 shadow-lg
+                                ${formData.raridade === r.value ? `${r.active} shadow-lg` : `bg-white/[0.03] ${r.idle} hover:bg-white/5`}`}
+                            >
+                              <span className={`w-2.5 h-2.5 rounded-full ${r.dot} ${formData.raridade === r.value ? 'opacity-100 shadow-lg' : 'opacity-20'}`} />
+                              {r.value}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* ── Linha 5: Imagem ── */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em] flex items-center gap-2">
+                          <ImageIcon className="w-3 h-3 text-gold/50" /> Imagem
+                        </label>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => document.getElementById('imageUploadLarge')?.click()}
+                            className="shrink-0 bg-gold/5 border border-gold/20 hover:border-gold/50 rounded-xl px-5 py-3 text-[10px] font-black uppercase text-gold flex items-center gap-2 transition-all"
+                          >
+                            <ImageIcon className="w-4 h-4" /> Upload
+                          </button>
+                          <input id="imageUploadLarge" type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                          <input
+                            value={formData.image}
+                            onChange={e => setFormData({ ...formData, image: e.target.value })}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white/40 focus:text-white focus:border-gold/40 transition-all outline-none text-[10px] font-mono"
+                            placeholder="ou cole a URL da imagem..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* ── Divisor + Descrição + Ações ── */}
+                      <div className="pt-6 border-t border-white/8 space-y-5">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.25em] flex items-center gap-2">
+                            <FileText className="w-3 h-3 text-gold/50" /> Descrição
+                          </label>
+                          <textarea
+                            value={formData.desc}
+                            onChange={e => setFormData({ ...formData, desc: e.target.value })}
+                            rows={3}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-gold/40 transition-all outline-none resize-none leading-relaxed text-sm italic placeholder:text-white/10"
+                            placeholder="Descreva o destino inabalável desta alma no campo de batalha..."
+                          />
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setActiveTab('archive')}
+                            className="flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border border-white/8 hover:bg-white/5 transition-all text-white/25 hover:text-white"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex-[3] py-4 bg-gradient-to-r from-gold/90 to-gold hover:brightness-110 active:scale-[0.98] transition-all rounded-xl text-black text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-gold/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {saving ? (
+                              <><Loader2 className="w-5 h-5 animate-spin" /> Salvando...</>
+                            ) : (
+                              <><Sparkles className="w-5 h-5" /> {editingCard ? 'Salvar Alterações' : 'Criar Combatente'}</>
+                            )}
+                          </button>
                         </div>
                       </div>
                    </div>
                 </div>
 
                 {/* VISUAL PREVIEW (SIDE) */}
-                <div className="lg:col-span-5 sticky top-10 space-y-10">
-                   <div className="text-center space-y-2">
-                      <h5 className="text-[12px] font-black uppercase text-gold tracking-[0.5em]">Manifestação em Tempo Real</h5>
-                      <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">O resultado de suas runas aparecerá aqui</p>
+                <div className="lg:col-span-5 sticky top-10 space-y-6">
+                   <div className="text-center space-y-1">
+                      <h5 className="text-[11px] font-black uppercase text-gold tracking-[0.4em]">Preview</h5>
+                      <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Passe o mouse para revelar</p>
                    </div>
 
                    <div className="flex justify-center">
-                      <div className={`relative w-[380px] h-[540px] rounded-[3rem] border-8 p-2 bg-black overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] transition-all duration-1000 group/preview ${formData.level === 'Ouro' ? 'border-yellow-500/50 shadow-yellow-500/20' : formData.level === 'Prata' ? 'border-zinc-400/50 shadow-zinc-400/20' : formData.level === 'Bronze' ? 'border-orange-500/50 shadow-orange-500/20' : 'border-zinc-700/50 shadow-white/5'}`}>
+                      <div className={`relative w-[320px] h-[460px] rounded-[2.5rem] border-[6px] p-2 bg-black overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] transition-all duration-700 group/preview
+                        ${formData.raridade === 'Lendário' ? 'border-yellow-400/60 legendary-glow' :
+                          formData.raridade === 'Épico'    ? 'border-purple-500/60 epic-glow' :
+                          formData.raridade === 'Raro'     ? 'border-blue-500/50 shadow-blue-500/20' :
+                          formData.raridade === 'Incomum'  ? 'border-zinc-400/40 shadow-zinc-400/10' :
+                          formData.level === 'Ouro'        ? 'border-yellow-500/50 shadow-yellow-500/15' :
+                          formData.level === 'Prata'       ? 'border-zinc-400/40 shadow-zinc-400/10' :
+                          formData.level === 'Bronze'      ? 'border-orange-500/40 shadow-orange-500/10' :
+                          'border-zinc-700/40 shadow-white/5'}`}>
                          <div className="absolute inset-0 border-2 border-white/5 rounded-[2.6rem] m-2 pointer-events-none z-10" />
                          
                          <div className="relative w-full h-full bg-[#050505] rounded-[2.2rem] overflow-hidden flex flex-col group">
@@ -744,7 +803,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                          </div>
                       </div>
                    </div>
-                   <p className="text-center text-[10px] text-white/20 font-black uppercase tracking-[0.4em] animate-pulse">Passe o mouse para revelação completa</p>
+                   {/* Raridade badge no preview */}
+                   <div className="flex justify-center">
+                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${getRaridadeBadge(formData.raridade)}`}>
+                       {formData.raridade}
+                     </span>
+                   </div>
                 </div>
               </div>
             </motion.div>
@@ -809,18 +873,36 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.1); border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.3); }
+
+        @keyframes epic-pulse {
+          0%, 100% { box-shadow: 0 0 28px rgba(147,51,234,0.55), 0 0 8px rgba(147,51,234,0.3); }
+          50%       { box-shadow: 0 0 45px rgba(147,51,234,0.9), 0 0 16px rgba(192,132,252,0.6); }
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.2);
+        @keyframes legendary-pulse {
+          0%, 100% { box-shadow: 0 0 32px rgba(212,175,55,0.65), 0 0 10px rgba(212,175,55,0.3); }
+          50%       { box-shadow: 0 0 55px rgba(212,175,55,1), 0 0 22px rgba(255,220,100,0.7); }
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(212, 175, 55, 0.1);
-          border-radius: 20px;
+        .epic-glow      { animation: epic-pulse 2s ease-in-out infinite; }
+        .legendary-glow { animation: legendary-pulse 1.8s ease-in-out infinite; }
+
+        @keyframes lightning {
+          0%, 90%, 100% { opacity: 0; }
+          92%, 96%      { opacity: 1; }
+          94%           { opacity: 0.4; }
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(212, 175, 55, 0.3);
+        .epic-glow::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          background: linear-gradient(135deg, transparent 40%, rgba(192,132,252,0.6) 50%, transparent 60%);
+          animation: lightning 3s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 0;
         }
       `}</style>
     </div>
