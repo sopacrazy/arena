@@ -12,7 +12,7 @@ interface Card {
   name: string;
   level: 'Neutro' | 'Bronze' | 'Prata' | 'Ouro';
   element: 'Agua' | 'Terra' | 'Luz' | 'Trevas' | 'Vento' | 'Fogo';
-  raca: string;
+  raca: 'Humano' | 'Zumbi' | 'Fada';
   classe: 'Guerreiro' | 'Mago' | 'Necromance';
   atq: number;
   def: number;
@@ -85,7 +85,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     desc: '',
     level: 'Neutro' as Card['level'],
     element: 'Agua' as Card['element'],
-    raca: '',
+    raca: 'Humano',
     classe: 'Guerreiro' as Card['classe'],
     image: '/fundo.webp'
   });
@@ -235,7 +235,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       desc: '', 
       level: 'Neutro', 
       element: 'Agua',
-      raca: '',
+      raca: 'Humano',
       classe: 'Guerreiro',
       image: '/fundo.webp' 
     });
@@ -533,12 +533,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                            <div className="grid grid-cols-2 gap-6">
                               <div className="space-y-3">
                                 <label className="text-[11px] font-black uppercase text-white/30 tracking-[0.3em] pl-2">Raça</label>
-                                <input 
+                                <select
                                   value={formData.raca}
                                   onChange={e => setFormData({ ...formData, raca: e.target.value })}
                                   className="w-full bg-white/5 border border-white/10 rounded-[1.2rem] px-6 py-4 text-white focus:border-gold/40 transition-all outline-none"
-                                  placeholder="Ex: Humano"
-                                />
+                                >
+                                  <option value="" disabled className="bg-[#0d0d10]">Selecionar</option>
+                                  <option value="Humano" className="bg-[#0d0d10]">Humano</option>
+                                  <option value="Zumbi" className="bg-[#0d0d10]">Zumbi</option>
+                                  <option value="Fada" className="bg-[#0d0d10]">Fada</option>
+                                </select>
                               </div>
                               <div className="space-y-3">
                                 <label className="text-[11px] font-black uppercase text-white/30 tracking-[0.3em] pl-2">Classe</label>
