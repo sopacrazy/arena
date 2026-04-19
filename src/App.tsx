@@ -62,7 +62,7 @@ export default function App() {
   }
 
   if (view === 'admin') {
-    return <AdminPanel onClose={() => setView('landing')} session={session} />;
+    return <AdminPanel onClose={() => setView('landing')} />;
   }
 
   if (view === 'arena') {

@@ -34,11 +34,11 @@ export default function Navbar({
   return (
     <nav className="fixed w-full z-50 top-0 transition-all duration-500 bg-transparent hover:bg-black/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 items-center h-24">
+        <div className="flex items-center justify-between h-24">
 
           {/* Logo */}
           <div
-            className="flex items-center justify-start gap-3 group cursor-pointer"
+            className="flex items-center justify-start gap-3 group cursor-pointer shrink-0"
             onClick={() => window.location.reload()}
           >
             <img
@@ -49,7 +49,7 @@ export default function Navbar({
           </div>
 
           {/* Links centrais */}
-          <div className="hidden lg:flex items-center justify-center space-x-10">
+          <div className="hidden lg:flex items-center justify-center gap-6 flex-1 mx-6">
             {navLinks.map((item) => (
               <a
                 key={item.pt}
@@ -69,7 +69,7 @@ export default function Navbar({
           </div>
 
           {/* Área direita — login ou avatar */}
-          <div className="hidden lg:flex items-center justify-end gap-3">
+          <div className="hidden lg:flex items-center justify-end gap-3 shrink-0">
             {session ? (
               <div className="relative">
                 <button
